@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { KILIFI_FLEET } from "@/lib/fleet";
 import { Button } from "@/components/ui/button";
+import { ReservationForm } from "@/components/bookings/ReservationForm";
 import { Badge } from "@/components/ui/badge";
 import {
   Car,
@@ -164,6 +165,9 @@ export default async function VehicleDetailPage({ params }: PageProps) {
             </a>
           </div>
         </section>
+        </div>
+      <div className="max-w-4xl mx-auto mt-16">
+        <ReservationForm vehicle={vehicle} />
       </div>
     </main>
   );
