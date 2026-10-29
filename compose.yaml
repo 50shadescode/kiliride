@@ -1,0 +1,40 @@
+name: kiliride-local
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: kiliride
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Run npm run local:env first}
+      POSTGRES_DB: kiliride_dev
+    ports:
+      - "127.0.0.1:55432:5432"
+    volumes:
+      - development-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kiliride -d kiliride_dev"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+  postgres-test:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: kiliride
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Run npm run local:env first}
+      POSTGRES_DB: kiliride_test
+    ports:
+      - "127.0.0.1:55433:5432"
+    volumes:
+      - test-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kiliride -d kiliride_test"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+  mailpit:
+    image: axllent/mailpit:v1.27
+    ports:
+      - "127.0.0.1:11025:1025"
+      - "127.0.0.1:18025:8025"
+volumes:
+  development-data:
+  test-data:

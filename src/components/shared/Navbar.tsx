@@ -27,11 +27,11 @@ export function Navbar() {
 
         {/* Auth Buttons matching Design Screenshot */}
         <div className="flex items-center gap-3">
-          <Button variant="ghost" className="text-slate-600 font-bold hover:bg-slate-50 px-6 rounded-xl">
-            Login
+          <Button asChild variant="ghost" className="text-slate-600 font-bold hover:bg-slate-50 px-3 sm:px-6 rounded-xl">
+            <Link href="/login">Login</Link>
           </Button>
-          <Button className="bg-slate-900 hover:bg-emerald-700 text-white font-bold px-6 rounded-xl transition-all shadow-sm">
-            Sign Up
+          <Button asChild className="bg-slate-900 hover:bg-emerald-700 text-white font-bold px-3 sm:px-6 rounded-xl transition-all shadow-sm">
+            <Link href="/signup">Sign Up</Link>
           </Button>
         </div>
       </div>

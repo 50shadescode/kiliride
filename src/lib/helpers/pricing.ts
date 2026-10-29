@@ -1,21 +1,21 @@
-import { Vehicle } from "@/lib/types/vehicle";
+import type { Vehicle } from "@/lib/types/vehicle";
 
 /**
  * Calculates number of rental days
+ * Uses UTC boundaries so timezone and daylight-saving changes do not affect date-only inputs.
  */
 export function calculateRentalDays(
   pickupDate: string,
   returnDate: string
-) {
+): number {
   if (!pickupDate || !returnDate) {
     return 0;
   }
 
-  const start = new Date(pickupDate);
-  const end = new Date(returnDate);
+  const start = new Date(`${pickupDate}T00:00:00Z`);
+  const end = new Date(`${returnDate}T00:00:00Z`);
 
-  const difference =
-    end.getTime() - start.getTime();
+  const difference = end.getTime() - start.getTime();
 
   const days = Math.ceil(
     difference / (1000 * 60 * 60 * 24)
@@ -25,7 +25,7 @@ export function calculateRentalDays(
 }
 
 /**
- * Calculates estimated rental fee
+ * Calculates estimated rental fee using aligned schema parameters
  */
 export function calculateEstimatedRentalFee(
   vehicle: Vehicle,
@@ -35,9 +35,7 @@ export function calculateEstimatedRentalFee(
     return 0;
   }
 
-  return (
-    rentalDays * vehicle.fullDayRate
-  );
+  return rentalDays * vehicle.baseFullDay;
 }
 
 /**

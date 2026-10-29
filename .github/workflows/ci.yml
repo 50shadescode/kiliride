@@ -1,0 +1,33 @@
+name: Phase 1 foundations
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run local:env
+      - run: docker compose up -d --wait
+      - run: npm run db:generate
+      - run: npm run db:migrate
+      - run: npm run db:migrate:test
+      - run: npm run db:migrate:test
+      - run: npm run lint -- --max-warnings 0
+      - run: npm run typecheck
+      - run: npm run test:unit
+      - run: npx --no-install playwright install --with-deps chromium
+      - run: npm run test:integration
+      - run: npm run build
+      - run: npm audit --omit=dev --audit-level=high
+      - name: Stop isolated services without deleting volumes
+        if: always()
+        run: docker compose stop

@@ -9,13 +9,13 @@ export default function AboutPage() {
         
         <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 text-left space-y-6 text-gray-600 leading-relaxed">
           <p>
-            Developed in Mombasa and operating across Kilifi County, <strong>KiliRide</strong> is a premier transit aggregator designed by <strong>Suby Tech</strong> to bridge the gap between premium car rentals and accessible regional commuting.
+            Developed in Mombasa and operating across Kilifi County, <strong>KiliRide</strong> is a premium car hire marketplace designed by <strong>Suby Tech</strong> to connect local car owners with customers.
           </p>
           <p>
-            We observed a massive bottleneck affecting both vacationers exploring Bofa Road and daily commuters heading toward regional transport stations: fragmented networks, unpredictable pricing matrices, and a distinct lack of digital reliability.
+            Customers exploring Bofa Road and the wider coast need reliable vehicles and clear rental pricing. Our verified fleet makes it easier to compare cars and plan a rental.
           </p>
           <p>
-            By designing a unified marketplace architecture, we empower local vehicle hosts to unlock maximum utility from their assets while providing travelers with a safe, streamlined path to secure point-to-point transit.
+            We help car owners reach customers through a managed marketplace. Customers browse vehicles and contact Patrick, our admin, on WhatsApp to confirm availability and finalize their booking.
           </p>
         </div>
       </div>

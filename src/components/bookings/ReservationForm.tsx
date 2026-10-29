@@ -9,7 +9,7 @@
 
 import { useState } from "react";
 
-import { Vehicle } from "@/lib/types/vehicle";
+import type { Vehicle } from "@/lib/types/vehicle";
 
 import {
   calculateRentalDays,
