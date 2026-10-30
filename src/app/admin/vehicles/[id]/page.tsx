@@ -1,0 +1,24 @@
+import Link from "next/link";
+import { headers } from "next/headers";
+import { notFound } from "next/navigation";
+import { z } from "zod";
+import { pageIdentity } from "@/server/page-access";
+import { AccessError } from "@/server/authorization";
+import { getAdminVehicle } from "@/server/fleet/admin";
+import { listingStatusLabels } from "@/lib/validation/host-vehicle";
+import { VehicleReviewForm } from "@/components/admin/VehicleReviewForm";
+import { ReviewPhotos } from "@/components/admin/ReviewPhotos";
+export const dynamic = "force-dynamic";
+const time = (date: Date) => `${date.toLocaleString("en-KE", { timeZone: "Africa/Nairobi" })} (Nairobi)`;
+export default async function AdminVehiclePage({ params }: { params: Promise<{ id: string }> }) {
+  await pageIdentity("ADMIN"); const { id } = await params;
+  if (!z.string().uuid().safeParse(id).success) notFound();
+  const vehicle = await getAdminVehicle(await headers(), id).catch(error => { if (error instanceof AccessError && error.status === 404) notFound(); throw error; });
+  const submission = vehicle.events.find(event => event.toStatus === "PENDING_REVIEW");
+  const details = { "Public identifier": vehicle.publicId, Owner: vehicle.ownership?.owner?.name ?? "Unassigned", "Owner ID": vehicle.ownership?.ownerId ?? "None", "Ownership relationship": vehicle.ownership?.origin ?? "None", "Owner email verified": vehicle.ownership?.owner?.emailVerified ? "Yes" : "No", Registration: vehicle.registration?.registrationNumber ?? "Not supplied", Category: vehicle.category, Seats: vehicle.seats, Fuel: vehicle.fuelType, Transmission: vehicle.transmission, Location: vehicle.location, "Half day": `KES ${vehicle.baseHalfDay.toLocaleString("en-KE")}`, "Full day": `KES ${vehicle.baseFullDay.toLocaleString("en-KE")}`, Submitted: submission ? time(submission.createdAt) : "Not submitted", Revision: vehicle.revision };
+  return <section className="mx-auto my-10 w-full max-w-5xl px-4 sm:px-6"><Link href="/admin" className="text-emerald-700 underline">Back to vehicle queue</Link><h1 className="mt-5 text-3xl font-bold">{vehicle.make} {vehicle.model}</h1><p data-testid="listing-status" className="my-4 font-semibold">{listingStatusLabels[vehicle.status]}</p><dl className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-5 sm:grid-cols-2">{Object.entries(details).map(([label, value]) => <div key={label} className="min-w-0"><dt className="text-sm text-slate-500">{label}</dt><dd className="break-words font-medium">{value}</dd></div>)}</dl><p className="my-5 whitespace-pre-wrap break-words">{vehicle.description}</p>
+    <section className="my-8"><h2 className="text-xl font-bold">Submitted photographs</h2><ReviewPhotos photos={vehicle.photos} /></section><section className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6"><h2 className="mb-5 text-xl font-bold">Review decision</h2><VehicleReviewForm key={`${id}-${vehicle.revision}`} vehicleId={id} revision={vehicle.revision} status={vehicle.status} selfReview={vehicle.selfReview} policies={vehicle.policies} /></section>
+    <section className="my-8"><h2 className="text-xl font-bold">Immutable review history</h2>{!vehicle.decisions.length && !vehicle.reviews.length && <p className="mt-3">No review decisions yet.</p>}<ul className="mt-4 space-y-4">{vehicle.decisions.map(decision => <li key={decision.id} className="break-words rounded-xl border border-slate-200 bg-white p-5"><p className="font-semibold">{listingStatusLabels[decision.fromStatus]} → {listingStatusLabels[decision.toStatus]}</p><p className="text-sm text-slate-500">{time(decision.createdAt)} · Revision {decision.vehicleRevision} · Administrator {decision.reviewerId}</p><p className="my-3 whitespace-pre-wrap">{decision.reason}</p>{decision.evidenceReference && <p>Private evidence: {decision.evidenceReference}</p>}{decision.policyVersion && <p>Policy: {decision.policyVersion}</p>}{decision.checklist && <details className="mt-3"><summary className="cursor-pointer text-emerald-700">Recorded verification evidence</summary><pre className="mt-2 whitespace-pre-wrap break-all text-sm">{JSON.stringify(decision.checklist, null, 2)}</pre></details>}</li>)}
+    {vehicle.reviews.filter(review => !vehicle.decisions.some(decision => decision.reviewId === review.id)).map(review => <li key={review.id} className="break-words rounded-xl border border-slate-200 bg-white p-5"><p className="font-semibold">{listingStatusLabels[review.decision]} · Earlier review record</p><p className="text-sm">{time(review.createdAt)} · Administrator {review.reviewerId} · Revision {review.vehicleRevision}</p><p className="my-3">{review.reason}</p><p>Criteria: {review.criteriaVersion ?? "Not recorded"}</p><p>Private evidence: {review.evidenceReference ?? "Not recorded"}</p><p className="mt-2 text-sm">This record predates the structured checklist. No verification checks have been inferred.</p></li>)}</ul></section>
+  </section>;
+}

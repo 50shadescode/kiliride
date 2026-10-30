@@ -1,7 +1,7 @@
 import type { VehicleListingStatus } from "@/generated/prisma/client";
 
 export class FleetError extends Error {
-  constructor(public readonly code: "CONFLICT" | "INVALID_TRANSITION" | "EVIDENCE_REQUIRED") { super(code); }
+  constructor(public readonly code: "CONFLICT" | "INVALID_TRANSITION" | "EVIDENCE_REQUIRED" | "POLICY_REQUIRED") { super(code); }
 }
 
 // Role authorization and ownership are checked by the server service separately.

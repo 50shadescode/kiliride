@@ -1,4 +1,18 @@
-# KiliRide architecture: Phase 0 proposal
+# KiliRide architecture: implemented and target design
+
+## Phase 2E administrator review (2026-10-31)
+
+`/admin` is now the MFA-protected vehicle verification queue; `/admin/vehicles/[id]` shows details, minimal owner relationship, saved registration/specifications/prices, protected photos and immutable review history. Server pages authorize before reading/rendering. Queue Suspense follows authorization so anonymous/forbidden responses retain redirect/404 behavior. Filters, pagination, empty/loading/error states and mobile review controls use the existing emerald/slate interface.
+
+Thin `/api/admin/vehicles` list/detail/decision/photo handlers call `src/server/fleet/admin.ts`. Every service independently checks current verified ADMIN identity, required MFA and post-grant session using unchanged Phase 1 authorization. Mutation boundaries enforce same Origin, bounded JSON and strict fields. The existing fleet transition engine owns all status transitions; no second lifecycle implementation was introduced. Atomic status/audit/history uses parent row locking and expected revisions. Admin self-review is forbidden.
+
+Private byte reads are split into authorization at the HOST or ADMIN service and shared size/SHA-256 validation in `src/server/images/read.ts`. The ADMIN endpoint permits review photographs only after MFA authorization; the existing HOST route remains current-owner-only. No storage identifiers, public file route, optimizer caching or supporting-document uploads. Evidence identifiers are escaped private text, not fetched links. Host feedback receives only permitted outcome/reason/time.
+
+Two additive migrations introduce immutable policy/decision records and an immutable compliance matrix. Strict shared schemas validate five explicit review checks and configurable compliance profiles; the server requires resolved applicability, documented authority/basis, actual-arrangement attestation and every mandatory evidence check. A snapshot of the applicable profile is stored with each approval. Missing policy/matrix, pending policy review, stale revision, missing/corrupt photos or incomplete evidence fails closed. No provider/dependency was introduced.
+
+The product's KILIRIDE-FLEET-VERIFY-001 / 0.1-DRAFT is deliberately unapproved, with no approver or effective date. The draft config is not loaded as an activated policy. Real approvals remain blocked pending formal approval and Kenyan regulatory/legal/insurance determinations; test-only configurations live exclusively in isolated test DB/storage. Current development has no policy record. This is engineering workflow support, not evidence authenticity automation or legal certification.
+
+Static public catalogue, identifiers, pricing, CarCard and WhatsApp remain unchanged; no 2F cutover, booking/payment/subscription/driver implementation or deployment. See the Phase 2 report and draft policy for executed checks, activation blockers and manual acceptance. Historical milestone sections below retain their original scope statements.
 
 ## Phase 2D private photograph management (2026-10-30)
 

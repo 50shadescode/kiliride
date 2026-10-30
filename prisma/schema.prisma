@@ -33,6 +33,8 @@ model User {
   vehiclePhotos VehiclePhoto[]
   vehicleReviews VehicleReview[]
   vehicleEvents VehicleListingEvent[]
+  vehicleDecisions VehicleDecisionRecord[]
+  verificationPolicies VehicleVerificationPolicy[]
 }
 
 model Session {
@@ -167,6 +169,7 @@ model Vehicle {
   reviews VehicleReview[] @relation("VehicleReviews")
   events VehicleListingEvent[]
   legacyImport LegacyVehicleImport?
+  decisions VehicleDecisionRecord[]
 
   @@index([status, createdAt])
 }
@@ -252,6 +255,7 @@ model VehicleReview {
   evidenceReference String?
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   approvedVehicle Vehicle? @relation("CurrentApproval")
+  decisionRecord VehicleDecisionRecord?
 
   @@index([vehicleId, createdAt])
 }
@@ -279,4 +283,40 @@ model LegacyVehicleImport {
   sourceSnapshot Json
   operator String
   importedAt DateTime @default(now()) @db.Timestamptz(3)
+}
+
+// Policy content is supplied by authorized operations, never inferred or seeded
+// for real vehicles by the application. Test-only policies cannot authorize dev.
+model VehicleVerificationPolicy {
+  version String @id
+  reference String
+  approvedById String
+  approvedBy User @relation(fields: [approvedById], references: [id], onDelete: Restrict)
+  approvedAt DateTime @db.Timestamptz(3)
+  enabled Boolean @default(false)
+  testOnly Boolean @default(false)
+  requirements Json?
+  decisions VehicleDecisionRecord[]
+}
+
+model VehicleDecisionRecord {
+  id String @id @default(dbgenerated("gen_random_uuid()::text"))
+  vehicleId String
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+  reviewerId String
+  reviewer User @relation(fields: [reviewerId], references: [id], onDelete: Restrict)
+  reviewId String? @unique
+  review VehicleReview? @relation(fields: [reviewId], references: [id], onDelete: Restrict)
+  fromStatus VehicleListingStatus
+  toStatus VehicleListingStatus
+  vehicleRevision Int
+  reason String
+  evidenceReference String?
+  policyVersion String?
+  policy VehicleVerificationPolicy? @relation(fields: [policyVersion], references: [version], onDelete: Restrict)
+  checklist Json?
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  @@unique([vehicleId, vehicleRevision])
+  @@index([vehicleId, createdAt])
 }

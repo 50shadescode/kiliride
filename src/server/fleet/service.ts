@@ -5,6 +5,11 @@ import { AccessError, requireIdentity, requireRole } from "../authorization";
 import { getDb } from "../db";
 import { assertListingTransition, FleetError } from "./lifecycle";
 import { completeVehicleDraft, draftValues } from "@/lib/validation/host-vehicle";
+import { approvalSchema } from "@/lib/validation/vehicle-review";
+import { assessedCompliance } from "@/lib/validation/vehicle-compliance";
+import { readVerifiedImage } from "../images/read";
+import { imageStorage } from "../images/storage";
+import { assertLocalDatabase } from "../../../scripts/local-safety.mjs";
 
 const idSchema = z.string().uuid();
 const reasonSchema = z.string().trim().min(10).max(1000);
@@ -13,6 +18,7 @@ const transitionSchema = z.object({
   vehicleId: idSchema, expectedRevision: z.number().int().nonnegative(),
   toStatus: z.enum(["DRAFT", "PENDING_REVIEW", "APPROVED", "REJECTED", "SUSPENDED"]),
   reason: reasonSchema, criteriaVersion: referenceSchema.optional(), evidenceReference: referenceSchema.optional(),
+  approval: approvalSchema.optional(),
 }).strict();
 
 async function fleetActor(headers: Headers) {
@@ -63,8 +69,7 @@ export async function assignVehicleOwner(headers: Headers, input: unknown) {
   });
 }
 
-// Foundation only: no route handler, server action or dashboard exposes this yet.
-// Actual review criteria/evidence must be supplied by authorized operations later.
+// Single lifecycle engine, also used by the administrator decision endpoint.
 export async function transitionVehicleListing(headers: Headers, input: unknown) {
   const actor = await fleetActor(headers);
   const data = transitionSchema.parse(input);
@@ -73,21 +78,49 @@ export async function transitionVehicleListing(headers: Headers, input: unknown)
     if (!actor.administrator && vehicle.ownership?.ownerId !== actor.id) throw new AccessError(403);
     if (vehicle.revision !== data.expectedRevision) throw new FleetError("CONFLICT");
     assertListingTransition(vehicle.status, data.toStatus, actor.administrator);
+    const administratorDecision = actor.administrator && ["APPROVED", "REJECTED", "SUSPENDED", "DRAFT"].includes(data.toStatus);
+    if (administratorDecision && vehicle.ownership?.ownerId === actor.id) throw new AccessError(403);
     if (data.toStatus === "PENDING_REVIEW" && !vehicle.ownership?.ownerId) throw new FleetError("EVIDENCE_REQUIRED");
     if (data.toStatus === "PENDING_REVIEW") {
       const registration = await tx.vehicleRegistration.findUnique({ where: { vehicleId: vehicle.id } });
       completeVehicleDraft(draftValues(vehicle, registration?.registrationNumber));
     }
     let approvedReviewId: string | null = null;
+    let reviewId: string | null = null;
+    let criteriaVersion = data.criteriaVersion;
+    let evidenceReference = data.evidenceReference;
+    let compliance: ReturnType<typeof assessedCompliance> = null;
+    if (data.toStatus === "APPROVED") {
+      if (!data.approval) throw new FleetError("EVIDENCE_REQUIRED");
+      const { policyVersion } = data.approval;
+      await tx.$queryRaw`SELECT version FROM "VehicleVerificationPolicy" WHERE version = ${policyVersion} FOR SHARE`;
+      const policy = await tx.vehicleVerificationPolicy.findUnique({ where: { version: policyVersion } });
+      if (!policy?.enabled || policy.approvedAt > new Date()) throw new FleetError("POLICY_REQUIRED");
+      if (policy.testOnly) assertLocalDatabase(process.env.DATABASE_URL, true);
+      compliance = assessedCompliance(policy.requirements, data.approval.compliance);
+      if (!compliance) throw new FleetError("EVIDENCE_REQUIRED");
+      const registration = await tx.vehicleRegistration.findUnique({ where: { vehicleId: vehicle.id } });
+      completeVehicleDraft(draftValues(vehicle, registration?.registrationNumber));
+      const photographs = await tx.vehiclePhoto.findMany({ where: { vehicleId: vehicle.id }, include: { object: true } });
+      if (!photographs.length || photographs.some(photo => photo.object?.state !== "ACTIVE")) throw new FleetError("EVIDENCE_REQUIRED");
+      for (const photo of photographs) await readVerifiedImage(imageStorage(), photo.object!);
+      criteriaVersion = policy.version;
+      evidenceReference ??= data.approval.checklist.vehicleIdentity.evidenceReference;
+    }
     if (data.toStatus === "APPROVED" || data.toStatus === "REJECTED") {
       if (!actor.administrator || vehicle.ownership?.ownerId === actor.id) throw new AccessError(403);
-      if (data.toStatus === "APPROVED" && (!data.criteriaVersion || !data.evidenceReference)) throw new FleetError("EVIDENCE_REQUIRED");
       const review = await tx.vehicleReview.create({ data: {
         vehicleId: vehicle.id, reviewerId: actor.id, decision: data.toStatus, vehicleRevision: vehicle.revision,
-        reason: data.reason, criteriaVersion: data.criteriaVersion, evidenceReference: data.evidenceReference,
+        reason: data.reason, criteriaVersion, evidenceReference,
       } });
+      reviewId = review.id;
       if (data.toStatus === "APPROVED") approvedReviewId = review.id;
     }
+    if (administratorDecision) await tx.vehicleDecisionRecord.create({ data: {
+      vehicleId: vehicle.id, reviewerId: actor.id, reviewId, fromStatus: vehicle.status, toStatus: data.toStatus,
+      vehicleRevision: vehicle.revision, reason: data.reason, evidenceReference,
+      ...(data.toStatus === "APPROVED" && data.approval && compliance ? { policyVersion: data.approval.policyVersion, checklist: { ...data.approval.checklist, compliance } } : {}),
+    } });
     const updated = await tx.vehicle.update({ where: { id: vehicle.id }, data: { status: data.toStatus, approvedReviewId, revision: { increment: 1 } } });
     await tx.vehicleListingEvent.create({ data: { vehicleId: vehicle.id, actorId: actor.id, fromStatus: vehicle.status, toStatus: data.toStatus, reason: data.reason } });
     await tx.auditLog.create({ data: { actorId: actor.id, subjectId: vehicle.id, action: `VEHICLE_${data.toStatus}`, reason: data.reason } });

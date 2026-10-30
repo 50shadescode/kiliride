@@ -14,6 +14,7 @@ import { imageStorage, imageStorageNamespace } from "../../src/server/images/sto
 import { normalizeImage } from "../../src/server/images/normalize";
 import { FleetError } from "../../src/server/fleet/lifecycle";
 import { ImageError, MAX_IMAGE_BYTES } from "../../src/lib/validation/vehicle-image";
+import { syntheticPolicy } from "../helpers/verification";
 
 assertLocalDatabase(process.env.TEST_DATABASE_URL, true);
 assert.equal(process.env.DATABASE_URL, process.env.TEST_DATABASE_URL);
@@ -21,6 +22,7 @@ const db = getDb(), store = imageStorage(), service = createPhotoService(store);
 type Actor = { id: string; headers: Headers };
 let host: Actor, other: Actor, customer: Actor, admin: Actor;
 let png: Buffer;
+let approval: Awaited<ReturnType<typeof syntheticPolicy>>;
 const denied = (status: number) => (error: unknown) => error instanceof AccessError && error.status === status;
 const imageError = (status: number) => (error: unknown) => error instanceof ImageError && error.status === status;
 async function actor(role?: "HOST" | "ADMIN"): Promise<Actor> {
@@ -43,6 +45,7 @@ async function upload(vehicleId: string, revision: number, replacePhotoId?: stri
 before(async () => {
   assert.equal((await db.$queryRaw<{ name: string }[]>`SELECT current_database() AS name`)[0].name, "kiliride_test");
   host = await actor("HOST"); other = await actor("HOST"); customer = await actor(); admin = await actor("ADMIN");
+  approval = await syntheticPolicy(admin.id);
   png = await sharp({ create: { width: 64, height: 48, channels: 3, background: "#059669" } }).png().toBuffer();
 });
 after(async () => { await db.$disconnect(); });
@@ -152,7 +155,7 @@ test("pending/approved/suspended image writes fail; rejected edits invalidate re
   await submitHostVehicle(host.headers, v.id, { expectedRevision: 1 });
   const reason = "Synthetic image lifecycle test only";
   for (const [status, revision] of [["PENDING_REVIEW", 2], ["APPROVED", 3], ["SUSPENDED", 4]] as const) {
-    if (status !== "PENDING_REVIEW") await transitionVehicleListing(admin.headers, { vehicleId: v.id, expectedRevision: revision - 1, toStatus: status, reason, criteriaVersion: "SYNTHETIC", evidenceReference: "SYNTHETIC" });
+    if (status !== "PENDING_REVIEW") await transitionVehicleListing(admin.headers, { vehicleId: v.id, expectedRevision: revision - 1, toStatus: status, reason, ...(status === "APPROVED" ? { approval } : {}) });
     await assert.rejects(upload(v.id, revision), FleetError);
     await assert.rejects(service.remove(host.headers, v.id, photo.photoId, { expectedRevision: revision }), FleetError);
     await assert.rejects(service.arrange(host.headers, v.id, { expectedRevision: revision, photoIds: [photo.photoId], coverPhotoId: photo.photoId }), FleetError);

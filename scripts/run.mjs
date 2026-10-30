@@ -10,7 +10,8 @@ if (['migrate-test', 'status-test', 'test', 'serve-test', 'test-fleet'].includes
   assertLocalDatabase(process.env.DATABASE_URL);
 }
 const commands = {
-  'test-fleet': ['--conditions=react-server', '--import', 'tsx', '--test', 'tests/database/fleet.test.ts', 'tests/database/images.test.ts'],
+  // Files share retained test records; serialize suites, not explicit race tests.
+  'test-fleet': ['--conditions=react-server', '--import', 'tsx', '--test', '--test-concurrency=1', 'tests/database/fleet.test.ts', 'tests/database/images.test.ts', 'tests/database/admin.test.ts'],
   migrate: ['node_modules/prisma/build/index.js', 'migrate', 'deploy'],
   'migrate-test': ['node_modules/prisma/build/index.js', 'migrate', 'deploy'],
   'status-test': ['node_modules/prisma/build/index.js', 'migrate', 'status'],

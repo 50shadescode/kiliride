@@ -12,12 +12,14 @@ import { FleetError } from "../../src/server/fleet/lifecycle";
 import { assignVehicleOwner, readFleetVehicle, readVehicleRegistration, transitionVehicleListing } from "../../src/server/fleet/service";
 import { createHostVehicle, editHostVehicle, getHostVehicle, listHostVehicles, submitHostVehicle } from "../../src/server/fleet/host";
 import { ZodError } from "zod";
+import { syntheticPolicy, syntheticPhoto } from "../helpers/verification";
 
 assertLocalDatabase(process.env.TEST_DATABASE_URL, true);
 assert.equal(process.env.DATABASE_URL, process.env.TEST_DATABASE_URL);
 const db = getDb();
 type Actor = { id: string; headers: Headers };
 let customer: Actor, host: Actor, otherHost: Actor, admin: Actor, noMfaAdmin: Actor;
+let approval: Awaited<ReturnType<typeof syntheticPolicy>>;
 const reason = "Synthetic Phase 2 foundation test only";
 
 // Synthetic role/MFA posture fixtures, not operator provisioning or real owners.
@@ -52,6 +54,7 @@ before(async () => {
   assert.equal(rows[0].database, "kiliride_test");
   customer = await actor(); host = await actor("HOST"); otherHost = await actor("HOST");
   admin = await actor("ADMIN", true); noMfaAdmin = await actor("ADMIN");
+  approval = await syntheticPolicy(admin.id);
 });
 after(async () => { await db.$disconnect(); });
 
@@ -129,6 +132,7 @@ test("host validation, concurrent edits and duplicate registration failures are 
 test("rejected listings can be revised and resubmitted while reviews stay immutable and approved/suspended listings stay read-only", async () => {
   const values = hostDraft();
   const vehicle = await createHostVehicle(host.headers, values);
+  await syntheticPhoto(vehicle.id, host.id);
   await submitHostVehicle(host.headers, vehicle.id, { expectedRevision: 0 });
   await transitionVehicleListing(admin.headers, { vehicleId: vehicle.id, expectedRevision: 1, toStatus: "REJECTED", reason: "Synthetic feedback: correct the description.", evidenceReference: "PRIVATE-SYNTHETIC-EVIDENCE" });
   const detail = await getHostVehicle(host.headers, vehicle.id);
@@ -138,7 +142,7 @@ test("rejected listings can be revised and resubmitted while reviews stay immuta
   await editHostVehicle(host.headers, vehicle.id, { ...values, description: "Revised synthetic description.", expectedRevision: 2 });
   assert.equal((await getHostVehicle(host.headers, vehicle.id)).status, "DRAFT");
   await submitHostVehicle(host.headers, vehicle.id, { expectedRevision: 3 });
-  await transitionVehicleListing(admin.headers, { vehicleId: vehicle.id, expectedRevision: 4, toStatus: "APPROVED", reason, criteriaVersion: "SYNTHETIC-ONLY", evidenceReference: "SYNTHETIC-ONLY" });
+  await transitionVehicleListing(admin.headers, { vehicleId: vehicle.id, expectedRevision: 4, toStatus: "APPROVED", reason, approval });
   await assert.rejects(editHostVehicle(host.headers, vehicle.id, { ...values, expectedRevision: 5 }), FleetError);
   await transitionVehicleListing(admin.headers, { vehicleId: vehicle.id, expectedRevision: 5, toStatus: "SUSPENDED", reason });
   await assert.rejects(editHostVehicle(host.headers, vehicle.id, { ...values, expectedRevision: 6 }), FleetError);
@@ -199,13 +203,14 @@ test("ownership and private registration require the current owner or MFA admin"
 
 test("controlled lifecycle, evidence requirements, concurrent decisions and immutable history", async () => {
   const vehicle = await draft();
+  await syntheticPhoto(vehicle.id, host.id);
   await assignVehicleOwner(admin.headers, { vehicleId: vehicle.id, ownerId: host.id, expectedRevision: 0, reason, evidenceReference: "SYNTHETIC-ONLY" });
   await assert.rejects(transitionVehicleListing(host.headers, { vehicleId: vehicle.id, expectedRevision: 1, toStatus: "APPROVED", reason }), FleetError);
   await transitionVehicleListing(host.headers, { vehicleId: vehicle.id, expectedRevision: 1, toStatus: "PENDING_REVIEW", reason });
   await assert.rejects(transitionVehicleListing(host.headers, { vehicleId: vehicle.id, expectedRevision: 2, toStatus: "APPROVED", reason }), FleetError);
   await assert.rejects(transitionVehicleListing(admin.headers, { vehicleId: vehicle.id, expectedRevision: 2, toStatus: "APPROVED", reason }), FleetError);
   assert.equal(await db.vehicleReview.count({ where: { vehicleId: vehicle.id } }), 0);
-  const input = { vehicleId: vehicle.id, expectedRevision: 2, toStatus: "APPROVED", reason, criteriaVersion: "SYNTHETIC-TEST-POLICY", evidenceReference: "SYNTHETIC-TEST-EVIDENCE" };
+  const input = { vehicleId: vehicle.id, expectedRevision: 2, toStatus: "APPROVED", reason, approval };
   const results = await Promise.allSettled([transitionVehicleListing(admin.headers, input), transitionVehicleListing(admin.headers, input)]);
   assert.equal(results.filter(result => result.status === "fulfilled").length, 1);
   assert.equal(await db.vehicleReview.count({ where: { vehicleId: vehicle.id } }), 1);

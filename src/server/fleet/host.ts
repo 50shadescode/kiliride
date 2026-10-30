@@ -23,6 +23,7 @@ export async function getHostVehicle(headers: Headers, id: string) {
   const vehicle = await getDb().vehicle.findFirst({ where: { id: idSchema.parse(id), ownership: { ownerId: user.id } }, select: {
     ...hostSelect, registration: { select: { registrationNumber: true } },
     reviews: { select: { id: true, decision: true, reason: true, createdAt: true }, orderBy: [{ createdAt: "desc" }, { id: "desc" }], take: 10 },
+    decisions: { where: { toStatus: { in: ["SUSPENDED", "DRAFT"] } }, select: { id: true, toStatus: true, reason: true, createdAt: true }, orderBy: { createdAt: "desc" }, take: 10 },
   } });
   if (!vehicle) throw new AccessError(404);
   return vehicle;

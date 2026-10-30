@@ -1,0 +1,2 @@
+"use client";
+export default function AdminError({ reset }: { reset: () => void }) { return <section className="mx-auto my-10 max-w-2xl px-4"><h1 className="text-2xl font-bold">Vehicle review is unavailable</h1><p className="my-4">Reload to check the current state before making another decision.</p><button onClick={reset} className="rounded-xl bg-emerald-600 px-5 py-3 text-white">Try again</button></section>; }

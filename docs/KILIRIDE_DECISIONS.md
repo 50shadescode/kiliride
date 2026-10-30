@@ -1,5 +1,15 @@
 # KiliRide decision register
 
+## Phase 2E scope and provisional policy direction (2026-10-31)
+
+- APPROVED scope: administrator verification dashboard/decision workflow, private photo review, immutable evidence/audit/history, host feedback, additive migrations and security/regression checks. Stop after 2E; no commit, push, deployment or public catalogue cutover.
+- PRODUCT DIRECTION RECORDED: KILIRIDE-FLEET-VERIFY-001, version 0.1-DRAFT, **DRAFT — NOT APPROVED**. Approver and effective date remain unset. See [draft policy](policies/KILIRIDE_VEHICLE_VERIFICATION_V0_1_DRAFT.md). The product owner explicitly instructed real approvals to remain blocked pending formal authorization/activation; no real policy/approval was seeded.
+- IMPLEMENTED: five required review categories matching the supplied direction; configurable profiles considering jurisdiction, classification/use, self-drive/chauffeur arrangements, ownership and operation. Applicability, supporting authority, evidence type, basis and review status are recorded per requirement. PENDING_POLICY_REVIEW blocks approval; missing guidance is never an exemption. Every mandatory requirement needs a passed check and evidence reference.
+- IMPLEMENTED: independent MFA ADMIN decisions through the existing lifecycle engine, immutable policy content/requirements and decision snapshots, row-lock/revision concurrency controls, private evidence and photograph access, owner-visible feedback without private review refs. Policy creation/activation has no public/API/dashboard endpoint; authorized operations must verify actual business approval before any later activation.
+- EXPLICITLY AUTHORIZED TESTING: clearly marked synthetic policy/evidence fixtures exercise the protocol only on kiliride_test:55433. SQL rejects test-only policy creation outside kiliride_test; application guards enforce the isolated port. These fixtures neither define Kenyan requirements nor verify actual inventory.
+- PENDING / DEPLOYMENT BLOCKERS: B09/B12/B13/B14 real verification criteria/expiry, current Kenyan regulatory requirements by arrangement, insurance guidance, policy approver authorization/effective date, document authenticity/custody/access/retention and photograph/plate publication. Draft references to insurance, inspection and permits identify unresolved determinations rather than asserting universal requirements.
+- UNCHANGED: legacy vehicles unassigned DRAFT, static public catalogue, pricing/WhatsApp, auth stack and dependency versions. Local production storage/ACL/backup readiness and five existing dev-tool audit findings remain separate limitations. Engineering acceptance is reported separately from business-policy readiness.
+
 ## Phase 2D authorization and technical decisions (2026-10-30)
 
 - APPROVED by current request: owned vehicle photographs, private storage, validation, cover/order, deletion/replacement, responsive HOST controls, consistency/security tests and prompt 003D. Stop before 2E; no commit, push or deployment.

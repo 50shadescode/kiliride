@@ -1,4 +1,91 @@
-# Phase 2 report: through Milestone 2D
+# Phase 2 report: through Milestone 2E
+
+## Milestone 2E acceptance (2026-10-30 to 2026-10-31)
+
+**Engineering acceptance: PASS for the authorized local 2E scope. Business-policy readiness: BLOCKED; overall readiness for real vehicle verification: PARTIAL.** The product owner expressly supplied `KILIRIDE-FLEET-VERIFY-001` / `0.1-DRAFT` as **DRAFT — NOT APPROVED**, with no approver or effective date. See [draft policy](policies/KILIRIDE_VEHICLE_VERIFICATION_V0_1_DRAFT.md). Real approvals remain blocked; synthetic protocol fixtures do not approve real policy or establish Kenyan compliance. Full dependency audit remains non-clean with five pre-existing development-tool findings. This section supersedes earlier milestone scope statements; their results below remain dated history.
+
+Authority: CODEX TASK 003E and subsequent provisional policy direction, recorded in [prompt 003E](prompts/CODEX_PROMPT_003E.md). Root AGENTS.md, prompts 003/003D, reports, architecture, data model and decisions were read. Initial branch **feature/phase2-fleet-management**, clean working tree confirmed. No commits, pushes, deployment or 2F work.
+
+### Implemented scope and code evidence
+
+| Capability | Status and evidence |
+|---|---|
+| MFA administrator dashboard | IMPLEMENTED: `src/app/admin/page.tsx`, `/admin/vehicles/[id]/page.tsx`, admin layout/error boundary and `src/components/admin/{VehicleFilters,VehicleReviewForm,ReviewPhotos}.tsx`. Pending queue by default, status/text filters, pagination, loading/empty/error states; detailed specifications, KES price units, private registration, minimal owner relationship, submission time and photographs. Emerald/slate responsive design. |
+| Server authorization | IMPLEMENTED: `src/server/fleet/admin.ts` calls existing `requireRole(ADMIN)` for every read/mutation/photo read. Verified email, current ADMIN role, MFA and post-role-grant session required. No hard-coded administrator. Owner-only host reads remain unchanged; ADMIN is not a host ownership bypass. |
+| Five verification checks | IMPLEMENTED: strict `vehicle-review.ts`, explicit confirmations/evidence refs for identity, legitimate ownership/authorization, registration, listing accuracy and rental eligibility. No prechecked inputs, inferred inspection or legal certificate. All stored photos must be ACTIVE and pass byte-length/SHA-256 verification before approval. |
+| Compliance configuration | IMPLEMENTED: `vehicle-compliance.ts` validates versioned profiles for jurisdiction, classification/use, rental arrangement and ownership/operation. Every requirement has applicability, supporting authority, evidence type, applicability basis and review status. Unresolved applicability/arrangement/review, absent matrix, missing mandatory evidence or unknown profile blocks approval. `vehicle-verification-draft.ts` holds only the unapproved Kilifi draft; it is never seeded into approved policies. |
+| Decisions and corrections | IMPLEMENTED: `decideAdminVehicle` delegates to the existing `transitionVehicleListing` engine. PENDING_REVIEW → APPROVED/REJECTED; APPROVED → SUSPENDED; authorized REJECTED/SUSPENDED → DRAFT. Host rejected edits/resubmission preserved. Independent reviewer required; administrators cannot decide their own listings. |
+| Atomic audit/history | IMPLEMENTED: vehicle row lock + expected revision, immutable VehicleReview, new VehicleDecisionRecord, listing event and AuditLog in one transaction. Decision captures actor, from/to status, revision, timestamp, reason, private evidence refs, policy version, checklist, applicable profile snapshot and per-requirement evidence. Duplicate/concurrent decisions produce one outcome; stale requests return conflict. SQL triggers reject historical alteration and new approvals missing current decisions/compliance evidence. |
+| Privacy | IMPLEMENTED: separate authorized admin image byte route reuses `src/server/images/read.ts` integrity checks. No storage keys, hashes, owner email, unrelated profile/session/authentication data in admin DTOs. Private evidence is escaped text, never fetched or automatically linked. No document uploads. Host DTOs expose only permitted outcome/reason/time, including suspension/reopening feedback. |
+| Legacy/public preservation | IMPLEMENTED: Vitz `vitz-142s` and Note `note-131c` remain unassigned DRAFTs, without invented photos/reviews/owners. Static KILIFI_FLEET, CarCard, public routes, pricing and WhatsApp remain unchanged. Approval does not publish or reserve a vehicle. |
+
+Admin routes: `GET /admin`, `GET /admin/vehicles/[id]`, `GET /api/admin/vehicles`, `GET /api/admin/vehicles/[id]`, `POST /api/admin/vehicles/[id]/decision`, and `GET /api/admin/vehicles/[id]/photos/[photoId]/image`. Reads are dynamic/private. Mutations require exact same Origin, JSON, strict fields and bounded 16 KiB bodies, then reauthorize in the service. Private images use no-store/Vary Cookie, nosniff, sandbox CSP and same-origin resource policy; no public optimizer/storage path is introduced. Page authentication completes before queue Suspense, preserving unauthorized redirect/404 responses.
+
+### Policy workflow and readiness
+
+The five checks follow the product-provided draft, not invented legal rules. The administrator compares registration/identity including VIN where available, establishes ownership or explicit authority to rent, considers authorized-source registration verification where available, resolves listing/photo/price discrepancies, and selects a formally resolved compliance profile matching the actual arrangement. Every mandatory requirement needs an explicit passed check and evidence reference. NOT_APPLICABLE needs a confirmed authority and applicability basis. Missing guidance never means exemption.
+
+The current Kilifi configuration marks insurance, inspections and permit/licensing/operation determinations PENDING_POLICY_REVIEW. No claim is made that a particular legal document is universally required. Formal business approval, approver authorization, effective date, current Kenyan regulatory/legal/insurance determinations, evidence custody/access/retention and authenticity procedures remain deployment blockers. No real approved policy or approval was inserted. Policy creation/activation is not exposed through the dashboard/API; a later controlled activation must verify formal authorization and the approved matrix. Policy metadata/requirements are immutable; only enabled status can be changed operationally. Test-only records are constrained to `kiliride_test` in SQL and port 55433 in application/test guards.
+
+### Additive migrations and preservation
+
+Two additive migrations were required: `202610300004_vehicle_verification` creates VehicleVerificationPolicy/VehicleDecisionRecord and decision/policy/history guards; `202610300005_verification_requirements` adds nullable policy requirements JSON and immutable-matrix/compliance guards after the product owner's additional direction. The already-applied first migration was not rewritten. Previous reviews remain intact without fabricated structured checks; missing matrix blocks new approvals. No reset, drop, destructive migration, data backfill or dependency upgrade.
+
+Local targets were confirmed as separate Docker instances: loopback **55432/kiliride_dev** and **55433/kiliride_test**. Backups before each migration stage are ignored custom-format dumps, never published:
+
+- `backups/kiliride-dev-pre-phase2e-20261030.dump` (55,012 bytes) and `kiliride-test-pre-phase2e-20261030.dump` (150,665 bytes).
+- `backups/kiliride-dev-pre-phase2e-matrix-20261030.dump` (68,552 bytes) and `kiliride-test-pre-phase2e-matrix-20261030.dump` (217,947 bytes).
+
+First rehearsal: `kiliride_rehearsal_2c2f8c23af764853b93455305b1b6019`, five migrations. Final rehearsal: `kiliride_rehearsal_f8eef0ca3b27451ead1630aff9d7f641`, six migrations, **19 tables / 18 triggers**, repeated deploy no-op, matching history/checksums/status, rolled-back CUSTOMER trigger and test-policy isolation probes. Targets are fresh disposable databases on port 55433 and retained for inspection. An initial sandbox-blocked rehearsal left an empty disposable target; no existing DB was reset.
+
+Both local targets migrated successfully after backups/rehearsals. All 16 original application table fingerprints matched immediately after the first migration. Before/after the matrix migration, all 18 existing tables' original fields matched (new nullable requirements excluded from the original-policy-field comparison). Development's original 16-table fingerprints still match after tests. No development user, policy, photograph, review, owner or fixture was added.
+
+Recovery: retain schema/history and disable the new review entry points if rollback is required. Do not delete audit rows or reverse migrations destructively. Backups are pre-change safety copies, not a claim of a new restore drill; any restore must use a separate disposable target and coordinated private-image snapshot per the existing runbook. No restore over a live target was attempted.
+
+### Actual execution results
+
+| Command/check | Result |
+|---|---|
+| Prisma `validate` / `generate` | PASS, unchanged Prisma 7.10.1. |
+| `node scripts/rehearse-migrations.mjs` | PASS, final six migrations / 19 tables / 18 triggers, no-op repeat, checksums/status and isolation probes. |
+| `node scripts/run.mjs migrate` / `migrate-test` | PASS, both backed-up local targets, two additive stages. |
+| Migration data fingerprints | PASS, original fields preserved on both targets; development baseline unchanged. |
+| `npm.cmd run test:unit` | PASS, 13/13 (2.11s), including compliance gaps and occupied-server isolation. |
+| `node scripts/run.mjs test-fleet` | PASS, 24/24 (20.59s); six admin/compliance cases plus 18 fleet/host/image regression cases. |
+| `node scripts/run.mjs test` | PASS, final complete run 15/15 (3.3m); all auth/verification/recovery/MFA/recovery-code replay, HOST/image, catalogue/pricing/WhatsApp and admin cases. Focused corrected admin run also 3/3 (58.0s). |
+| `node node_modules/typescript/bin/tsc --noEmit --incremental false` | PASS after final code/test changes. |
+| `node node_modules/eslint/bin/eslint.js . --max-warnings 0` | PASS, zero warnings after final code/test changes. |
+| `npm.cmd run build` / `node scripts/check-private-traces.mjs` | PASS after final UI correction: 15 static pages, dynamic admin routes; 37 traces exclude private storage/backups/env. |
+| `node scripts/run.mjs status-test` | PASS: six migrations, isolated test schema up to date. |
+| Read-only Prisma schema comparison | Raw diff reports only 13 UUID-default parenthesis normalizations; temporary canonical-expression comparison reports no difference, exit 0. No structural drift or corrective DB mutation. See below. |
+| Final read-only storage inventory / legacy checks | PASS: 143 active synthetic objects match photo references, files, sizes and SHA-256; no orphan files or pending cleanup. Both legacy records remain unassigned DRAFTs without photos/reviews/decisions. Development has zero policy records; all 17 retained test policies are test-only. |
+| Online `npm.cmd audit --omit=dev --json` | PASS, zero runtime vulnerabilities. |
+| Online `npm.cmd audit --json` | NON-CLEAN, exit 1: five existing dev-tool findings, 3 high / 1 moderate / 1 low. |
+| Git branch, whitespace and scope | PASS: feature/phase2-fleet-management; initial tree clean, final changes intentionally uncommitted. No public catalogue/pricing/WhatsApp/auth/dependency/workflow or previously applied pre-2E migration changes. |
+
+Audit findings remain `@hono/node-server`, `brace-expansion`, `deepmerge`, `shadcn` and its nested `zod`; no new package or lockfile changes. No forced fixes or Prisma upgrades were run. Hosted GitHub Actions has not been executed for these uncommitted changes.
+
+Corrections during verification: initial database run 21/23 exposed an invalid test payload and file-level shared-state interference; payload fixed and suites serialized while explicit concurrency tests remain concurrent. First browser run 13/15 exposed a new fixture using multipart against the existing raw-image upload contract; fixture corrected without changing the upload API. The next run 14/15 caught selector labels including option text; explicit accessible names corrected the UI, then focused 3/3 and complete 15/15 passed, including keyboard focus and 375px/1280px layouts. A unit run alongside Playwright hit the occupied port by construction; final execution is sequential and the unit isolation test passed. Windows subprocess EPERM restrictions required authorized reruns. No assertion was disabled to obtain a pass. Existing smooth-scroll/color notices and navigation destination-stream logs were observed during browser regressions.
+
+Additional read-only drift inspection: `prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code` returned nonzero solely for PostgreSQL's `(gen_random_uuid())::text` versus the schema's equivalent `gen_random_uuid()::text` on 13 ID defaults (12 existing tables plus VehicleDecisionRecord). An ignored temporary schema copy normalized only those expression parentheses; `--to-schema backups/phase2e-canonical-schema.prisma --exit-code` then returned **No difference detected**, exit 0. The application schema, UUID behavior and database were not altered to suppress this cosmetic comparison.
+
+### Manual acceptance and remaining limitations
+
+1. Provision a real authorized MFA ADMIN using the existing controlled process. Check `/admin` and a submission detail; anonymous/CUSTOMER/HOST/non-MFA users must be denied.
+2. Confirm the development policy table is empty and real approval remains unavailable. Review the draft with the designated business owner and qualified regulatory/legal/insurance advisers; do not activate it as approved.
+3. For a genuinely owned, complete HOST submission, review private photos, identity/relationship/details/prices and discrepancies. Reject with an actionable reason; verify only that owner receives feedback and can correct/resubmit.
+4. In the isolated synthetic test environment only, exercise checklist/profile requirements, approval, stale second-tab conflict, suspension and authorized reopening. Check immutable history and absence of evidence refs in HOST responses.
+5. Confirm the public Vitz/Note routes, existing KES prices and WhatsApp quote continue unchanged. Use keyboard and a physical mobile device/screen reader for additional acceptance; automated viewport checks are not a complete assistive-technology audit.
+
+Remaining limits: formal policy/compliance activation and real evidence review blocked; private document custody/retention not implemented; local image adapter still requires separately approved production storage/ACL/backup design; no new combined image/database restore drill; five existing dev dependency advisories; no hosted CI, deployment or real-world legal/insurance determination. Stop after 2E. Do not proceed to 2F, bookings, payments, subscriptions or drivers.
+
+### Changed file groups
+
+- Schema/migrations: `prisma/schema.prisma`, the two new migration directories above.
+- Admin UI/API: `src/app/admin/{page,layout,error}.tsx`, `src/app/admin/vehicles/[id]/page.tsx`, `src/app/api/admin/vehicles/**`, `src/components/admin/{VehicleFilters,VehicleReviewForm,ReviewPhotos}.tsx`.
+- Services/validation/config: `src/server/fleet/{admin,admin-http,service,lifecycle,host}.ts`, `src/server/images/{read,service}.ts`, `src/lib/validation/{vehicle-review,vehicle-compliance}.ts`, `src/lib/config/vehicle-verification-draft.ts`, host detail page for suspension/reopening feedback.
+- Checks: `scripts/{run,rehearse-migrations}.mjs`, `tests/database/{admin,fleet,images}.test.ts`, `tests/integration/admin.spec.ts`, `tests/unit/vehicle-review.test.ts`, `tests/helpers/{verification,compliance-fixture}.ts`.
+- Documentation: this report, TEST_REPORT, DATA_MODEL, ARCHITECTURE, DECISIONS, prompt 003E and the draft policy. Ignored local backups/fingerprints are operator artifacts, not application source or publishable data.
 
 ## Milestone 2D final local result (2026-10-30)
 

@@ -1,5 +1,5 @@
 import "server-only";
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import type { Prisma } from "@/generated/prisma/client";
 import { requireRole, AccessError } from "../authorization";
@@ -9,6 +9,7 @@ import { vehicleRevisionSchema } from "@/lib/validation/host-vehicle";
 import { ImageError, MAX_VEHICLE_PHOTOS, photoOrderSchema, photoUploadSchema } from "@/lib/validation/vehicle-image";
 import { normalizeImage } from "./normalize";
 import { imageStorage, type ImageStorage } from "./storage";
+import { readVerifiedImage } from "./read";
 
 const id = z.string().uuid();
 async function owned(headers: Headers, vehicleId: string) {
@@ -142,11 +143,7 @@ export function createPhotoService(storage: ImageStorage) {
       await owned(headers, vehicleId); id.parse(photoId);
       const photo = await db.vehiclePhoto.findFirst({ where: { id: photoId, vehicleId, object: { state: "ACTIVE" } }, include: { object: true } });
       if (!photo?.object) throw new AccessError(404);
-      try {
-        const bytes = await storage.get(photo.object.key);
-        if (bytes.length !== photo.object.byteSize || createHash("sha256").update(bytes).digest("hex") !== photo.object.sha256) throw new Error("Image integrity check failed");
-        return bytes;
-      } catch { throw new ImageError(404, "Photograph unavailable."); }
+      return readVerifiedImage(storage, photo.object);
     },
     async reconcile() {
       const cutoff = new Date(Date.now() - 3600_000);

@@ -39,9 +39,9 @@ try {
     assert.equal(migration.checksum, createHash('sha256').update(readFileSync(`prisma/migrations/${migration.migration_name}/migration.sql`)).digest('hex'));
   }
   const tables = await target.query("SELECT tablename FROM pg_tables WHERE schemaname = 'public'");
-  assert.equal(tables.rowCount, 17);
+  assert.equal(tables.rowCount, 19);
   const triggers = await target.query("SELECT tgname FROM pg_trigger WHERE NOT tgisinternal ORDER BY tgname");
-  assert.deepEqual(triggers.rows.map(row => row.tgname), ['audit_immutable', 'legacy_import_immutable', 'user_customer_role', 'vehicle_event_immutable', 'vehicle_listing_guard', 'vehicle_ownership_guard', 'vehicle_ownership_no_delete', 'vehicle_photo_guard', 'vehicle_review_guard', 'vehicle_review_immutable', 'vehicle_submission_guard']);
+  assert.deepEqual(triggers.rows.map(row => row.tgname), ['audit_immutable', 'legacy_import_immutable', 'user_customer_role', 'vehicle_approval_decision_guard', 'vehicle_compliance_guard', 'vehicle_decision_guard', 'vehicle_decision_immutable', 'vehicle_event_immutable', 'vehicle_listing_guard', 'vehicle_ownership_guard', 'vehicle_ownership_no_delete', 'vehicle_photo_guard', 'vehicle_review_guard', 'vehicle_review_immutable', 'vehicle_submission_guard', 'verification_policy_guard', 'verification_policy_no_delete', 'verification_requirements_immutable']);
   // Exercise the migrated role trigger without retaining fixture data.
   const connection = await target.connect();
   try {
@@ -49,8 +49,13 @@ try {
     const user = await connection.query('INSERT INTO "User" (name,email,"updatedAt") VALUES ($1,$2,now()) RETURNING id', ['Migration probe', `${randomUUID()}@kiliride.test`]);
     const roles = await connection.query('SELECT role FROM "RoleAssignment" WHERE "userId" = $1', [user.rows[0].id]);
     assert.deepEqual(roles.rows.map(row => row.role), ['CUSTOMER']);
+    await connection.query('UPDATE "User" SET "emailVerified" = true, "twoFactorEnabled" = true WHERE id = $1', [user.rows[0].id]);
+    await connection.query('INSERT INTO "RoleAssignment" ("userId",role) VALUES ($1,\'ADMIN\')', [user.rows[0].id]);
+    await connection.query('SAVEPOINT policy_probe');
+    await assert.rejects(connection.query('INSERT INTO "VehicleVerificationPolicy" (version,reference,"approvedById","approvedAt","testOnly") VALUES ($1,$2,$3,CURRENT_TIMESTAMP,true)', ['SYNTHETIC-PROBE', 'Synthetic isolation probe only', user.rows[0].id]), /Test policy requires isolated test database/);
+    await connection.query('ROLLBACK TO SAVEPOINT policy_probe');
   } finally { await connection.query('ROLLBACK'); connection.release(); }
-  console.log('PASS: clean migrations, repeat no-op, status, SQL checksums, 17 tables, eleven triggers and CUSTOMER probe.');
+  console.log('PASS: clean migrations, repeat no-op, status, SQL checksums, 19 tables, eighteen triggers, CUSTOMER and test-policy isolation probes.');
   console.log(`Disposable database retained for inspection: ${name}. Existing databases were not migrated or reset.`);
 } finally {
   await target?.end();

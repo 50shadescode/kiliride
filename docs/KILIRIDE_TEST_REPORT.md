@@ -1,4 +1,30 @@
-# Phase 0 test report
+# KiliRide test report
+
+## Phase 2E administrator verification (2026-10-31)
+
+**Engineering acceptance: PASS locally. Business-policy readiness: BLOCKED; overall real-operation readiness: PARTIAL.** Formal policy approval and Kenyan regulatory/legal/insurance determinations remain outstanding by explicit product-owner direction. The recorded policy is KILIRIDE-FLEET-VERIFY-001 / 0.1-DRAFT, unapproved with no approver/effective date. No real approved policy or vehicle approval was created. Full commands, file evidence, backups and manual acceptance are in [Phase 2 report](KILIRIDE_PHASE2_REPORT.md); policy in [draft specification](policies/KILIRIDE_VEHICLE_VERIFICATION_V0_1_DRAFT.md).
+
+| Executed command/check | Final outcome |
+|---|---|
+| `npm.cmd run test:unit` | PASS 13/13, 2.11s. |
+| `node scripts/run.mjs test-fleet` | PASS 24/24, 20.59s. Files serialized to avoid shared-record interference; explicit transaction races still run concurrently. |
+| `node scripts/run.mjs test` | PASS 15/15, 3.3m, complete Chromium/API suite. |
+| `node scripts/run.mjs test tests/integration/admin.spec.ts` | PASS 3/3, 58.0s after accessibility correction; followed by full suite above. |
+| TypeScript `--noEmit --incremental false` / ESLint `. --max-warnings 0` | PASS, zero warnings. |
+| Production build / `scripts/check-private-traces.mjs` | PASS, 15 static pages, admin dynamic routes, 37 traces excluding private runtime files. |
+| Prisma validate/generate, migrations, test status | PASS, unchanged Prisma 7.10.1; six migrations, test schema up to date. |
+| Fresh disposable migration rehearsal | PASS, six migrations / 19 tables / 18 triggers; repeat no-op/checksums/status, role and test-policy isolation probes. |
+| Data preservation | PASS, backups before both additive stages; original fields of 16 then 18 tables unchanged by migration on each isolated local target; final development baseline unchanged. |
+| Final storage consistency | PASS, 143 ACTIVE test objects match DB photo references, file inventory, byte sizes and hashes; no orphan files or pending cleanup. |
+| Read-only schema diff | Raw diff nonzero only for equivalent UUID-default parentheses. Canonical-expression temporary copy: no difference, exit 0; no DB mutation. |
+| Online runtime dependency audit | PASS, zero vulnerabilities. |
+| Online full dependency audit | NON-CLEAN, exit 1: five pre-existing dev findings (3 high, 1 moderate, 1 low). No package/lockfile changes or forced fixes. |
+
+New coverage: anonymous/CUSTOMER/HOST/non-MFA denial on queue/detail/decisions/photos, real MFA login before ADMIN access, pre-grant-session denial, same-Origin/JSON/body limits, strict authority fields, missing/disabled policy, five explicit evidence confirmations, unresolved matrix applicability, absent mandatory evidence, SQL checklist bypass, policy/history immutability, complete readable photographs and corruption failure, cross-owner confidentiality, self-review denial, competing approval/rejection, duplicate replay, suspension/reopening, fresh review after corrections, owner feedback isolation, legacy protection, queue filters/empty/error input and mobile/desktop keyboard controls. Synthetic test policy/evidence is expressly test-only; no Kenyan obligation is invented. Existing authentication, email/recovery, recovery-code replay, image operations, catalogue, pricing and WhatsApp regressions all passed.
+
+Initial failures were corrected without weakening assertions: database 21/23 (fixture shape and parallel shared-state counts), browser 13/15 (fixture wrongly used multipart against existing raw upload contract), then 14/15 (select labels included option text). Accessible labels fixed; final focused and full browser runs passed. An early concurrent unit/browser launch conflicted on the deliberate occupied-port test; final suites ran sequentially. Authorized retries resolved sandbox subprocess EPERM. Expected optimizer denial and existing navigation-stream/color/smooth-scroll logs were observed; no final failed assertion.
+
+No hosted CI for these uncommitted changes, deployment, real-policy activation, legal/insurance determination, complete physical-device/screen-reader audit or new coordinated DB/image restore drill. The development policy table is empty. Vitz/Note remain unassigned DRAFTs with original prices and no photos/reviews/decisions on both targets. Stop after 2E; earlier sections below are historical.
 
 ## Phase 2D photograph verification (2026-10-30)
 

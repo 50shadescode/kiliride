@@ -1,4 +1,20 @@
-# Proposed domain model and invariants
+# KiliRide domain model and invariants
+
+## Phase 2E administrator verification (2026-10-31)
+
+Additive migrations `202610300004_vehicle_verification` and `202610300005_verification_requirements` add two tables and policy matrix JSON. Six migrations now produce 19 public tables including Prisma history and 18 application triggers. No historical review was backfilled with invented evidence.
+
+| Record | Fields / invariants |
+|---|---|
+| VehicleVerificationPolicy | Version PK, reference, approving administrator FK, approval timestamp, enabled flag (default false), testOnly flag (default false), nullable requirements JSON. Policy metadata and matrix are immutable; new content requires a new version. Delete forbidden. An enabled record with missing/unresolved matrix cannot authorize a new approval. Test-only inserts are restricted to kiliride_test; application use also requires port 55433. No real policy is seeded. |
+| Compliance matrix JSON | Bounded profiles: jurisdiction, classification, intended use, rental arrangement, ownership/operation; uniquely named requirements with applicability, supporting authority, evidence type, applicability basis and review status. All mandatory requirements need evidence; unresolved applicability/review blocks approval. NOT_APPLICABLE must have confirmed documented authority/basis. |
+| VehicleDecisionRecord | DB UUID PK; Vehicle, User reviewer, optional unique VehicleReview and policy FKs; previous/new status, vehicleRevision, reason, optional private evidence ref, checklist JSON and timestamp. Unique (vehicleId, vehicleRevision). Append-only, no update/delete. Approval checklist contains five checks plus explicit context attestation, mandatory compliance evidence and immutable applicable-profile snapshot. |
+
+The decision engine locks Vehicle, checks expected revision and existing lifecycle authorization, validates enabled approved policy, full saved listing, five confirmations, resolved matching profile, required evidence and readable ACTIVE photographs. It creates VehicleReview where applicable, decision record, status/revision update, listing event and AuditLog atomically. SQL independently enforces independent MFA reviewer/current state/revision, matching review, policy, checklist, compliance evidence/profile snapshot and immutable history. Replays/conflicting decisions cannot both succeed. Policy locks prevent concurrent disabling during decision commit.
+
+Supporting evidence remains private text references, not public URLs or file uploads. Only ADMIN DTOs include verification evidence. HOST feedback selects outcome, reason and time; no reviewer identity, policy/evidence or object-storage metadata. Public catalogue still uses static KILIFI_FLEET, not these records.
+
+The product-provided [0.1-DRAFT policy](policies/KILIRIDE_VEHICLE_VERIFICATION_V0_1_DRAFT.md) has no approver/effective date and is **not** inserted as an approved policy. Its unresolved matrix is represented in `src/lib/config/vehicle-verification-draft.ts`. The table is for formally authorized policy records; technical ADMIN registration alone is not proof of business authorization. Formal activation and legal/insurance determinations remain deployment blockers. Earlier sections below document the model at their stated milestone.
 
 ## Phase 2D image journal and photo invariants (2026-10-30)
 
