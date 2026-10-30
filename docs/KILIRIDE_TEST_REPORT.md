@@ -1,5 +1,17 @@
 # Phase 0 test report
 
+## Phase 2D photograph verification (2026-10-30)
+
+**PASS for local 2D features; full dependency audit remains non-clean with five existing dev-tool advisories.** Complete evidence and limits: [Phase 2 report](KILIRIDE_PHASE2_REPORT.md).
+
+- 11/11 unit, 18/18 real fleet/image database tests and 12/12 browser/API tests passed. Final focused HOST suite 4/4 passed after revision/cache refresh checks; final database suite 18/18 passed after storage tracing correction. Authentication, MFA/recovery replay, catalogue, pricing and WhatsApp regressions remain intact.
+- New tests cover owner isolation, CSRF, safe private bytes/DTOs, image decoding/metadata/size/pixel/animation/type rules, traversal/overwrite, cover/order, replacement/removal, count/rate limits, concurrent writes/submission, reviewed-state SQL guards, compensation/reconciliation, missing/corrupt data and optimizer/direct-path denial. Mobile 375px/desktop 1280px controls, focus and fallback passed.
+- Schema/client, backed-up additive migration, disposable rehearsal (four migrations, 17 tables, eleven triggers), status, TypeScript, strict ESLint and production build passed. Existing data fingerprints remained unchanged by migration; development stayed unchanged after tests. Final private storage inventory matched 56 ACTIVE objects, references, lengths and SHA-256, with no orphan files or pending journal.
+- Thirty-two build traces exclude .data/backups/.env files; CI now checks this after build. Runtime online dependency audit: zero. Full online audit: five existing dev findings, exit 1 (3 high, 1 moderate, 1 low); sandbox's empty audit result was superseded by the online check.
+- Initial 17/18 database result traced to an animation fixture with identical frames; corrected fixture passed. TypeScript BigInt target mismatch and build's broad filesystem-tracing warning were corrected. Focused browser run emitted two destination-stream errors during navigation without failed assertions; optimizer-denial logs were expected.
+
+No hosted CI/deployment, real vehicle evidence, full manual screen-reader/device audit, production storage provider or combined object/database restore drill. Stop before 2E. Earlier sections are dated history.
+
 ## Phase 2C host management verification (2026-10-30)
 
 **PASS for local Milestone 2C.** Exact commands, migration backups, isolation and limitations are in [KILIRIDE_PHASE2_REPORT.md](KILIRIDE_PHASE2_REPORT.md).

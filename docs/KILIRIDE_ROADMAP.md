@@ -1,5 +1,11 @@
 # KiliRide — Commercial Product Roadmap
 
+## Phase 2D local status (2026-10-30)
+
+IMPLEMENTED under explicit 2D authorization: private local storage adapter, validated/re-encoded multiple photographs, owner-only reads/mutations, cover/order, secure deletion/replacement, responsive host controls and durable cleanup journal/reconciler. Public catalogue and earlier identity/host behavior remain unchanged. All new photographs stay private; no admin approval UI or public DB cutover.
+
+Local acceptance: 11 unit, 18 fleet/image database and 12 browser/API tests passed, plus focused final HOST coverage, migrations, TypeScript, strict lint, production build and private build-trace checks. Runtime audit clean; full audit retains five existing development-tool advisories. See [Phase 2 report](KILIRIDE_PHASE2_REPORT.md) for evidence and hosted-storage/restore/operational limits. STOP after 2D. Phase 2E requires separate authorization and approved review criteria; it has not begun.
+
 ## Phase 2C local status (2026-10-30)
 
 IMPLEMENTED under CODEX TASK 003C: protected HOST dashboard, new unverified DRAFTs, owned DRAFT/REJECTED editing, complete-draft submission, status/feedback and record-scoped permissions. Legacy records remain unassigned; the static public catalogue is unchanged. No images, admin approval UI, payments or reservations.

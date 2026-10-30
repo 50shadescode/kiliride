@@ -1,5 +1,14 @@
 # KiliRide decision register
 
+## Phase 2D authorization and technical decisions (2026-10-30)
+
+- APPROVED by current request: owned vehicle photographs, private storage, validation, cover/order, deletion/replacement, responsive HOST controls, consistency/security tests and prompt 003D. Stop before 2E; no commit, push or deployment.
+- IMPLEMENTED local adapter outside public/ with database-bound development/test namespaces. A production object-storage provider/region, access policies, monitoring and backup schedule remain pending; no external integration was configured.
+- IMPLEMENTED technical limits: JPEG/PNG/WebP only, 5 MiB input/output, 24 megapixels input, 2400px maximum output edge, 12 photographs per vehicle and 60 upload-processing attempts per HOST per minute. Re-encode to WebP and strip metadata. These resource controls do not define paid entitlements or legal verification criteria. Existing Sharp 0.35.5 pinned directly; Prisma unchanged.
+- IMPLEMENTED all images private in 2D, including approved listings. Owner-only byte routes; no anonymous/public/administrator image access shortcut. Admin review UI and public image integration are separately gated 2E/2F. No verification documents or legacy images imported.
+- IMPLEMENTED only DRAFT/REJECTED image mutations; rejected edits reopen DRAFT and preserve reviews. Photographs remain optional for the existing 2C submit operation pending approved review criteria; do not retroactively invent photograph-based approval policy.
+- IMPLEMENTED durable storage journal and idempotent deletion retry; failed removal immediately loses API visibility. Windows storage relies on service/workspace ACLs as well as application authorization; production hardening/backup-restore approval is required before hosted real-data operation.
+
 ## Phase 2C authorization and decisions (2026-10-30)
 
 - APPROVED by CODEX TASK 003C: protected host listing dashboard, create/edit drafts, submit for review, feedback, record permissions and tests. Stop after 2C; no uploads, admin approval screens, payments, reservations, commit, push or deployment.

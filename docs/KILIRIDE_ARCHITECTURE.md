@@ -1,5 +1,15 @@
 # KiliRide architecture: Phase 0 proposal
 
+## Phase 2D private photograph management (2026-10-30)
+
+Authorized 2D adds `src/server/images/{normalize,storage,service,http}.ts`, private host photo routes and `/host/vehicles/[id]/photos`. The local `ImageStorage` adapter stores immutable objects outside `public/` under ignored `.data/vehicle-images/development` or `test`, selected from guarded database identity/port. It exposes put/get/remove, never public URLs or client-selected keys. A hosted private object-store adapter remains unconfigured; no production provider or credentials were invented.
+
+JPEG/PNG/WebP signatures and MIME must agree; bytes, pixels and animation are bounded. Sharp fully decodes, normalizes orientation, downsizes and re-encodes WebP without original metadata. Sharp 0.35.5 was already installed through Next.js and is now an explicit pinned dependency; no dependency version was upgraded. Compatibility: Node >=20.9 per installed package, current Node 24.14.1, buffer APIs tested. References: [Sharp input limits](https://sharp.pixelplumbing.com/api-constructor/), [output metadata behavior](https://sharp.pixelplumbing.com/api-output/).
+
+All photo reads are current-owner HOST reads, even for approved listings. Byte delivery requires an ACTIVE journal object and matching length/SHA-256, with no-store, nosniff, same-origin resource policy and sandbox CSP. There is no public image route or optimizer cache path. Uploads require same Origin, bounded raw image bodies and strict metadata. Limits: 5 MiB, 24 megapixels, 2400px output edge, 12 photos/vehicle and 60 processing attempts/host/minute. These are technical resource controls, not subscription/verification policy.
+
+Photo edits share the parent vehicle lock/revision with listing edits/review submission; SQL also locks/checks lifecycle on photo mutations. DRAFT/REJECTED only; rejected changes return to DRAFT and append history. A durable `VehicleImageObject` journal precedes filesystem writes, activates atomically with metadata/audit, and records deletion intent before physical removal. Replacement writes a fresh immutable key and keeps the old photo intact until commit. The operator reconciler retries failed deletion or abandoned uploads without touching active referenced objects. See the local setup runbook and Phase 2 report for failure semantics, backup/recovery and executed tests. Public catalogue/WhatsApp remain unchanged; 2E/2F have not begun.
+
 ## Phase 2C host management (2026-10-30)
 
 The authorized 2C slice adds protected `/host`, `/host/vehicles/new` and `/host/vehicles/[id]` pages. Server-rendered pages call `src/server/fleet/host.ts` directly. Thin `/api/host/vehicles` and per-ID edit/submit handlers use the same services; each service rechecks verified identity, HOST role and current ownership. ADMIN does not bypass ownership in host endpoints. No client-supplied owner, state, identifier or verification fields are accepted.

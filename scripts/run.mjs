@@ -10,7 +10,7 @@ if (['migrate-test', 'status-test', 'test', 'serve-test', 'test-fleet'].includes
   assertLocalDatabase(process.env.DATABASE_URL);
 }
 const commands = {
-  'test-fleet': ['--conditions=react-server', '--import', 'tsx', '--test', 'tests/database/fleet.test.ts'],
+  'test-fleet': ['--conditions=react-server', '--import', 'tsx', '--test', 'tests/database/fleet.test.ts', 'tests/database/images.test.ts'],
   migrate: ['node_modules/prisma/build/index.js', 'migrate', 'deploy'],
   'migrate-test': ['node_modules/prisma/build/index.js', 'migrate', 'deploy'],
   'status-test': ['node_modules/prisma/build/index.js', 'migrate', 'status'],

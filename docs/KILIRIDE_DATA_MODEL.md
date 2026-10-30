@@ -1,5 +1,15 @@
 # Proposed domain model and invariants
 
+## Phase 2D image journal and photo invariants (2026-10-30)
+
+`202610300003_vehicle_images` adds one table, `VehicleImageObject`, with server-generated key, PENDING/ACTIVE/DELETE_PENDING state, SHA-256, normalized byte size/dimensions and creation time. `VehiclePhoto.objectKey` is a nullable unique FK; old metadata-only rows remain untouched and are never assumed to reference genuine stored photographs. New rows bind `objectKey = storageKey` and `image/webp`; no original filename/path is stored. Photo bytes remain outside PostgreSQL in private local storage.
+
+Upload journal creation commits before filesystem writes. A transaction locks the parent vehicle and journal, writes and flushes bytes, activates the object, adds/replaces photo metadata, increments revision and appends audit. A failed transaction leaves an unreferenced PENDING record for compensation. Replacement preserves photo ID/position/cover but changes the storage object; old-object deletion intent commits with the swap. Deletion removes metadata first, selects a remaining cover and compacts positions atomically; physical removal follows commit and can be retried. Old metadata-only rows have no object to delete.
+
+The existing unique vehicle/position and partial single-cover indexes remain. Ordering validates the complete owned photo set, uses temporary unused positions and assigns one cover in the transaction. The new SQL photo trigger locks its parent, refuses identity/vehicle changes and all pending/approved/suspended mutations, and requires ACTIVE normalized objects for new image links. Every API image mutation checks ownership, HOST role and expected revision. Submitted listing reviews therefore cannot race image edits.
+
+Journal cleanup locks each record and rechecks references/state before deletion. DELETE_PENDING is immediately eligible; PENDING must be over one hour old in the operator reconciler. Active referenced images are retained. Missing/corrupt active storage fails closed at read time and requires approved restore/replacement; it is not silently rewritten into a different listing state. See [local setup](KILIRIDE_LOCAL_SETUP.md) for coordinated backups and retry operations.
+
 ## Phase 2C implemented extension (2026-10-30)
 
 `202610300002_host_vehicle_management` adds `VehicleOwnershipOrigin` and `VehicleOwnership.declaredAt`. No new tables or destructive data operations. Existing assigned rows become ADMIN_ASSIGNED while null-owner rows become UNASSIGNED; original assignment fields are retained.

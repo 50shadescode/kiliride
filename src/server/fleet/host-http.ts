@@ -6,6 +6,7 @@ import { getEnv } from "../env";
 import { privateJson } from "../http";
 import { readLimitedBody } from "../request-body";
 import { FleetError } from "./lifecycle";
+import { ImageError } from "@/lib/validation/vehicle-image";
 
 class RequestError extends Error { constructor(public status: number, message: string) { super(message); } }
 export async function hostRequestBody(request: Request) {
@@ -18,6 +19,7 @@ export async function hostRequestBody(request: Request) {
 }
 
 export function hostError(error: unknown) {
+  if (error instanceof ImageError) return privateJson({ message: error.message }, error.status);
   if (error instanceof AccessError) return privateJson({ message: error.status === 404 ? "Listing not found." : "Access denied." }, error.status);
   if (error instanceof ZodError) return privateJson({ message: "Check the highlighted listing details.", fields: error.flatten().fieldErrors }, 400);
   if (error instanceof SyntaxError) return privateJson({ message: "Invalid request." }, 400);

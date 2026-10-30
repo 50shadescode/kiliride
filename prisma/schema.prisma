@@ -199,7 +199,7 @@ model VehicleRegistration {
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
 }
 
-// Metadata foundation only. No upload endpoint, storage provider or legacy images.
+// Private normalized image metadata. Old metadata-only fixtures have no objectKey.
 model VehiclePhoto {
   id String @id @default(dbgenerated("gen_random_uuid()::text"))
   vehicleId String
@@ -207,6 +207,8 @@ model VehiclePhoto {
   uploadedById String
   uploadedBy User @relation(fields: [uploadedById], references: [id], onDelete: Restrict)
   storageKey String @unique
+  objectKey String? @unique
+  object VehicleImageObject? @relation(fields: [objectKey], references: [key], onDelete: Restrict)
   contentType String
   byteSize Int
   altText String
@@ -215,6 +217,26 @@ model VehiclePhoto {
   createdAt DateTime @default(now()) @db.Timestamptz(3)
 
   @@unique([vehicleId, position])
+}
+
+enum VehicleImageObjectState {
+  PENDING
+  ACTIVE
+  DELETE_PENDING
+}
+
+// Durable journal created before any storage write; cleanup survives process failure.
+model VehicleImageObject {
+  key String @id
+  state VehicleImageObjectState @default(PENDING)
+  sha256 String
+  byteSize Int
+  width Int
+  height Int
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  photo VehiclePhoto?
+
+  @@index([state, createdAt])
 }
 
 model VehicleReview {

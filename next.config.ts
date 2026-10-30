@@ -5,6 +5,9 @@ const nextConfig: NextConfig = {
   reactCompiler: true,
   agentRules: false,
   logging: { incomingRequests: false },
+  outputFileTracingExcludes: {
+    "/*": ["./.data/**/*", "./backups/**/*", "./.env", "./.env.*"],
+  },
   async headers() {
     return [{ source: "/:path*", headers: [
       { key: "Referrer-Policy", value: "no-referrer" },

@@ -1,4 +1,86 @@
-# Phase 2 report: through Milestone 2C
+# Phase 2 report: through Milestone 2D
+
+## Milestone 2D final local result (2026-10-30)
+
+**PASS for the authorized local 2D feature scope.** The full dependency audit remains **non-clean: five pre-existing development-tool advisories**; runtime audit is clean. This is not production release approval. Authority: current user request and [CODEX_PROMPT_003D.md](prompts/CODEX_PROMPT_003D.md), created in this task. Root AGENTS.md, prompt 003, architecture/data model/decisions and implementation/acceptance reports were read. Branch: `feature/phase2-fleet-management`; initially clean working tree. Earlier 2C/2A/2B sections below remain historical evidence.
+
+### Implemented features and boundaries
+
+| Feature | Status / evidence |
+|---|---|
+| Private image storage | IMPLEMENTED locally: `src/server/images/storage.ts`, immutable UUID keys outside public/, exclusive writes/file flush, validated paths and rejected symlink/junction directories. Separate test/development namespaces tied to guarded DB names/ports. Put/get/remove interface supports a future private object-store adapter. |
+| Secure image processing | IMPLEMENTED: `normalize.ts`; JPEG/PNG/WebP signature and MIME checks, full decode/re-encode, orientation correction, resizing and metadata stripping. SVG/HTML/unsupported formats, animation, malformed/truncated and oversized input rejected. |
+| Multiple owned photographs | IMPLEMENTED: `service.ts`, `http.ts`, host photo API routes. Maximum 12 per vehicle, 5 MiB each, 24 megapixels input, 2400px output edge; output is WebP. Sixty upload-processing attempts per HOST/minute enforced atomically in the existing RateLimit table. |
+| Cover and ordering | IMPLEMENTED: full-set ownership validation, one cover, contiguous positions, transactional temporary positions to respect unique indexes. Accessible earlier/later buttons work without drag-and-drop. |
+| Replacement/deletion | IMPLEMENTED: replacement preserves photo ID/order/cover and switches to a new validated object atomically. Removal immediately removes API visibility, repairs cover/order and journals physical deletion for retry. |
+| Unpublished image protection | IMPLEMENTED/VERIFIED: **all new images remain private in 2D**, including approved listings. Current verified-email HOST owner only; no ADMIN cross-owner shortcut. Byte route checks ACTIVE state/size/SHA-256 and sets private no-store, Vary Cookie, nosniff, sandbox CSP and same-origin resource policy. No optimizer/public storage route. |
+| Mobile HOST interface | IMPLEMENTED: `PhotoManager.tsx` and `/host/vehicles/[id]/photos`; multiple selection, description, progress/errors, cover/order, replacement, confirmed removal, empty/unavailable states. Detail page links to it. Refreshes listing revision after image mutations. |
+| Lifecycle and audit | IMPLEMENTED: shared parent vehicle lock/revision, DRAFT/REJECTED only; rejected edits return to DRAFT with history retained. Pending/approved/suspended mutations rejected, including SQL bypass attempts. Every photo mutation appends audit in the metadata transaction. |
+| Database/storage consistency | IMPLEMENTED/VERIFIED: durable object journal precedes writes; rollback compensation; retryable deletion; lock-protected operator reconciliation. Missing/corrupt active bytes fail closed. Final inventory check matched 56 active synthetic objects to DB photo references, file sizes and SHA-256, with no orphan files or pending cleanup. |
+
+No original filename is trusted or stored. Host DTOs omit object keys/uploader/provenance; byte URLs use vehicle/photo IDs and still require authorization. Strict metadata and same-Origin checks precede bounded body consumption; services independently recheck authorization. Batch upload is sequential, with each image independently transactional; if a later image fails, earlier successful images remain and the gallery refreshes before another edit. No automatic retry with a stale revision.
+
+Photographs do not establish ownership/verification. Existing 2C submission does not acquire a new photo-minimum policy; real review criteria remain pending. No fake legacy photos, owners or evidence were added. Public routes, static KILIFI_FLEET, prices, CarCard, WhatsApp, authentication and authorization implementations remain unchanged.
+
+### Dependency and storage decisions
+
+Sharp **0.35.5**, already present as Next.js's transitive image dependency, is now explicitly pinned in package.json/lockfile. No package version, Prisma version or authentication dependency was upgraded. Installed Sharp requires Node >=20.9; the current Node 24.14.1 buffer-based APIs passed real decode/encode tests. Official references: [input limits](https://sharp.pixelplumbing.com/api-constructor/), [output metadata stripping](https://sharp.pixelplumbing.com/api-output/). Processing strips EXIF/XMP/ICC; orientation/metadata removal is tested rather than inferred from MIME alone.
+
+Local private files are under ignored `.data/vehicle-images/development` (loopback:55432/kiliride_dev) and `.data/vehicle-images/test` (loopback:55433/kiliride_test). Only the test namespace was created/populated. There is no hosted storage provider, signed public URL, bucket or production credential. The local adapter is a real tested storage implementation, not a claim of cloud readiness. POSIX modes are restrictive; Windows protection also depends on inherited service/workspace ACLs. Production storage/region/retention, deployment ACLs and a coordinated backup/restore drill require approval before hosted real-data operation.
+
+Build packaging also protects private files: `next.config.ts` excludes .data, backups and .env files from output tracing, and runtime realpath checks opt out of static tracing. `scripts/check-private-traces.mjs` asserts these boundaries after builds; CI now runs it. Final inspection of **32 build traces** found no private image storage, backups or environment files. [Next.js output tracing guidance](https://nextjs.org/docs/app/api-reference/config/next-config-js/output) documents the exclusion mechanism.
+
+### Migration, backup and recovery evidence
+
+Non-destructive `202610300003_vehicle_images` adds `VehicleImageObject` (key/state/hash/size/dimensions/timestamp), nullable unique `VehiclePhoto.objectKey` FK and consistency checks, plus `vehicle_photo_guard`. Existing metadata-only photo rows remain unchanged with null objectKey; they do not become genuine images. The new trigger locks the parent and rejects reviewed-listing photo changes. Existing unique position/single-cover constraints remain. No applied migration was changed, no reset/drop was run.
+
+Both Docker PostgreSQL containers and Mailpit were healthy. Live current_database/URL checks confirmed separate development port 55432 and test port 55433. Before migration, pg_dump custom-format backups were copied to ignored `backups/kiliride-pre-phase2d-20261030.dump` (50,233 bytes) and `backups/kiliride-test-pre-phase2d-20261030.dump` (98,302 bytes); originals remain in each container's /tmp/. Do not publish backups. No development image bytes existed to back up.
+
+Disposable rehearsal database: `kiliride_rehearsal_8116a8ed04d847a1b0ecc72b9c4fee3f` on test port 55433. All four migrations applied, repeated deployment was a no-op, status/history/checksums matched, and 17 tables/eleven triggers plus the rolled-back CUSTOMER-role probe passed. Both backed-up local targets then migrated successfully. Test migration status reports four migrations and schema up to date.
+
+Before test execution, all 14 existing non-photo table fingerprints and original VehiclePhoto field values matched before/after migration on both databases. Final development comparison still matched after tests. Development legacy vehicles remain unassigned and unchanged; no development account, photograph or review fixture was created. All automated writes and synthetic pixels used test DB/storage.
+
+The journal makes filesystem operations recoverable without pretending that PostgreSQL and a filesystem share one atomic transaction. PENDING commits before file creation; activation/photo metadata/revision/audit commit together after writing. Replacement leaves the previous photo intact on failure. Deleted/replaced objects become DELETE_PENDING before physical removal, so inaccessible bytes can remain after an I/O failure until retry. The reconciler locks/rechecks references, removes DELETE_PENDING or PENDING older than one hour, and never removes ACTIVE referenced objects. Missing/corrupted ACTIVE bytes require recovery/replacement, not destructive automatic DB cleanup.
+
+`node --conditions=react-server --import tsx scripts/reconcile-images.ts test` executed successfully: examined 0, removed 0, failed 0 after failure-injection tests had demonstrated actual recovery. The command supports an explicit dev target, processes up to 100 candidates and exits nonzero on failures. It is operator-run in this local milestone; no scheduled worker was deployed. See [local setup/recovery](KILIRIDE_LOCAL_SETUP.md) for coordinated database/object backups, interruption handling and restore isolation. Roll back host image UI/routes while retaining schema, journal and private objects; do not restore over live data or remove directories. No combined image restore drill was performed.
+
+### Actual checks and corrections
+
+| Command/check | Final result |
+|---|---|
+| Prisma `validate` and `generate` | PASS, unchanged Prisma 7.10.1. |
+| `node scripts/rehearse-migrations.mjs` | PASS: four migrations, repeat no-op, checksums/status, 17 tables, eleven triggers. |
+| `node scripts/run.mjs migrate` / `migrate-test` | PASS: additive migration on backed-up local targets. |
+| `node scripts/run.mjs status-test` | PASS: isolated test schema current. |
+| Before/after fingerprints; final development comparison | PASS: 14 original tables and original photo fields preserved. |
+| `node node_modules/tsx/dist/cli.mjs --test tests/unit/*.test.ts` | PASS: 11/11 (1.96s). |
+| `node scripts/run.mjs test-fleet` | PASS: 18/18; final rerun 6.83s after runtime storage tracing correction. Nine existing fleet/host tests plus nine image tests. |
+| `node scripts/run.mjs test` | PASS: 12/12 (2.1m), all existing auth/MFA/recovery-code replay, host, public catalogue and WhatsApp regressions plus new photo browser/API flows. |
+| `node scripts/run.mjs test tests/integration/host.spec.ts` | PASS: 4/4 (57.1s) after adding cache/revision refresh and verifying detail edits before/after photo operations. |
+| `node node_modules/typescript/bin/tsc --noEmit --incremental false` | PASS after final code/config corrections. |
+| `node node_modules/eslint/bin/eslint.js . --max-warnings 0` | PASS, zero warnings, including final script additions. |
+| `npm.cmd run build` | PASS: production compile/typecheck, 15 static pages, dynamic host/image routes; final build has no broad filesystem-tracing warnings. |
+| `node scripts/check-private-traces.mjs` | PASS: 32 generated traces exclude private runtime data. |
+| Reconciler CLI and read-only DB/file inventory/hash check | PASS; final 56 active objects match references/files/hashes, no pending journal or orphan files. |
+| Online `npm.cmd audit --omit=dev --audit-level=high` | PASS: zero runtime vulnerabilities. |
+| Online `npm.cmd audit --json` | NON-CLEAN, exit 1: five existing development-tool advisories (3 high, 1 moderate, 1 low). |
+| Git whitespace, branch and scope review | PASS. No changes to public fleet/pricing/WhatsApp/auth code or earlier migrations. |
+
+Security coverage includes forged filenames/paths/owner fields, cross-vehicle replacement, unverified/revoked access, anonymous/customer/cross-host/dual-role denial, private DTOs and byte headers, missing/wrong Origin, MIME/signature mismatch, SVG/HTML, truncated/animated/decompression-bomb/oversized inputs, metadata stripping, rate/count limits, overwrite rejection, cover/order invariants, concurrent uploads/submission, reviewed-state SQL guards, failed replacement compensation, failed deletion retry, interrupted upload reconciliation, missing/corrupt storage and optimizer/direct-path access denial. Browser controls passed 375px/1280px overflow and focus checks, including missing-image fallback and deletion/replacement flows. Test images are explicitly synthetic colored pixels, never legacy inventory evidence.
+
+Corrections: an ES2020 BigInt literal was replaced with the constructor for the repository's TypeScript target; initial database run was 17/18 because identical animation frames collapsed to a single frame, so the fixture was corrected and the suite passed 18/18. Initial build succeeded but warned that dynamic realpath checks traced too broadly; runtime tracing opt-out, explicit private-data exclusions and a CI trace assertion corrected this. The focused browser run logged two destination-stream errors during navigation but all assertions passed; expected optimizer-denial logs and existing color/smooth-scroll notices were also observed. No failed assertion was suppressed.
+
+The sandbox audit incorrectly reported an empty full-tree result while install reported advisories; an authorized online rerun is the recorded authoritative result. Existing dev findings are @hono/node-server (moderate), brace-expansion (high), deepmerge (low), shadcn (high aggregate) and its nested zod (high), matching the Phase 1 implementation report. The direct application Zod/runtime tree and Sharp have no reported runtime findings. No forced tooling downgrade/unrelated dependency upgrade was applied. These findings require release review; this report does not claim a clean full dependency audit.
+
+### Files and review boundary
+
+Added: prompt 003D; image migration; `src/server/images/{storage,normalize,service,http}.ts`; shared image validation; `/api/host/vehicles/[id]/photos` list/upload/order, per-photo DELETE and private byte route; host photo page/PhotoManager; reconciler and build-trace checker scripts; database image tests and unit validation tests. Updated: schema, host detail link/error mapping, test runner/rehearsal, host browser tests, next.config, CI trace check, .gitignore, package/lockfile, architecture/data model/decisions/local setup/test report/roadmap and this report.
+
+Manual review: with a legitimate local HOST, create/save a draft, open Manage photographs, upload multiple permitted images, choose cover/reorder/replace/remove, then return to details and save. Verify other accounts cannot view byte/detail URLs and pending listings are read-only. Use the isolated suites for synthetic failure/review cases; do not fabricate real verification decisions. No full manual screen-reader/device matrix, hosted CI, production execution, cloud adapter, malware-scanning service or combined object/DB restore drill is claimed. Secure decode/re-encode is not a general-purpose antivirus service.
+
+Local 2D acceptance has no outstanding functional blocker. Remaining deployment gates include the dev-tool advisories, approved hosted storage/access/retention/backup policy and a restore drill. **STOP after 2D.** No admin approval screen, public database cutover, private verification-document upload, payment/reservation feature, commit, push or deployment. Phase 2E has not begun.
+
+---
 
 ## Milestone 2C final local result (2026-10-30)
 

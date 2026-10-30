@@ -33,6 +33,8 @@ jobs:
       - run: npx --no-install playwright install --with-deps chromium
       - run: npm run test:integration
       - run: npm run build
+      - name: Exclude private runtime data from build traces
+        run: node scripts/check-private-traces.mjs
       - run: npm audit --omit=dev --audit-level=high
       - name: Stop isolated services without deleting volumes
         if: always()
