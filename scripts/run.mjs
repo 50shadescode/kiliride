@@ -3,13 +3,14 @@ import { spawnSync } from 'node:child_process';
 import { assertLocalDatabase } from './local-safety.mjs';
 
 const [task, ...args] = process.argv.slice(2);
-if (['migrate-test', 'status-test', 'test', 'serve-test'].includes(task)) {
+if (['migrate-test', 'status-test', 'test', 'serve-test', 'test-fleet'].includes(task)) {
   process.env.DATABASE_URL = assertLocalDatabase(process.env.TEST_DATABASE_URL, true);
   process.env.BETTER_AUTH_URL = 'http://localhost:3100';
 } else if (task === 'migrate') {
   assertLocalDatabase(process.env.DATABASE_URL);
 }
 const commands = {
+  'test-fleet': ['--conditions=react-server', '--import', 'tsx', '--test', 'tests/database/fleet.test.ts'],
   migrate: ['node_modules/prisma/build/index.js', 'migrate', 'deploy'],
   'migrate-test': ['node_modules/prisma/build/index.js', 'migrate', 'deploy'],
   'status-test': ['node_modules/prisma/build/index.js', 'migrate', 'status'],

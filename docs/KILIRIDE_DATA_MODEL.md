@@ -1,5 +1,26 @@
 # Proposed domain model and invariants
 
+## Phase 2A/2B implemented subset (2026-10-30)
+
+`202610300001_fleet_foundation` adds seven tables without altering identity data. Internal vehicle IDs are DB-generated UUIDs; immutable unique `publicId` preserves legacy slugs. Base prices are positive integer KES; timestamps use timestamptz. Nullable description records missing source information without inventing content.
+
+```mermaid
+erDiagram
+  Vehicle ||--o| VehicleOwnership : assignment
+  User o|--o{ VehicleOwnership : owner
+  User o|--o{ VehicleOwnership : assignedBy
+  Vehicle ||--o| VehicleRegistration : private
+  Vehicle ||--o{ VehiclePhoto : metadata
+  Vehicle ||--o{ VehicleReview : immutableReviews
+  User ||--o{ VehicleReview : reviewer
+  Vehicle ||--o{ VehicleListingEvent : immutableHistory
+  Vehicle ||--o| LegacyVehicleImport : privateProvenance
+```
+
+An ownership record with null ownerId is explicitly UNASSIGNED. Assignment requires an existing verified HOST and recorded MFA ADMIN, reason, evidence reference and timestamp. Transfers are not supported. Review records identify the reviewed revision, independent administrator, criteria/evidence references, decision/reason and time. APPROVED points to a matching current approval review; old review records cannot approve a different vehicle/revision. No approval is imported from static flags.
+
+VehicleRegistration and LegacyVehicleImport are private models, excluded from general vehicle reads. The source JSON retains historical flags, contact/image paths and fee values only as untrusted provenance. There are no photo or review rows for imported vehicles. Photograph storage/validation, document authenticity, verification expiry and approved criteria remain later work. The server-only lifecycle and SQL guards are described in [KILIRIDE_PHASE2_REPORT.md](KILIRIDE_PHASE2_REPORT.md). Broader conceptual models below remain proposals.
+
 ## Phase 1 implemented subset
 
 Implemented in prisma/schema.prisma and migration 202610290001_identity: User, Session, Account (Better Auth credentials/provider accounts), Verification, TwoFactor, RoleAssignment, AuditLog and RateLimit. All record IDs default to PostgreSQL-generated UUID text. User email, session token, provider/account identity, user/role assignment and throttle key have unique constraints; related auth records have explicit foreign keys. TwoFactor includes enrollment verification and lockout fields required by the installed library. CUSTOMER is assigned by an insert trigger; HOST/ADMIN are controlled separately; DRIVER is reserved and denied.

@@ -1,6 +1,14 @@
 # Local Phase 1 setup and recovery
 
-Local only. Do not use production connection strings. Runtime and migration guards accept only loopback hosts and databases named kiliride_dev or kiliride_test. Tests require kiliride_test. No fleet rows are migrated.
+Local only. Do not use production connection strings. Runtime and migration guards accept only loopback hosts and databases named kiliride_dev or kiliride_test. Tests require kiliride_test on port 55433. Phase 2A/2B now adds fleet tables and an explicit operator import, documented below; ordinary schema migrations do not import fleet data.
+
+## Phase 2A/2B local import and tests
+
+After reviewing/backing up and deploying migrations, run `npm run fleet:import -- dev --dry-run "Operator name"`. This validates and reports actions without writing records. Use `--apply` intentionally, then repeat to confirm UNCHANGED. The target argument must be `dev` (loopback:55432/kiliride_dev) or `test` (loopback:55433/kiliride_test). The CLI rejects missing/unknown flags and never silently defaults to an apply operation.
+
+Imports preserve existing public slugs/specifications/base prices as unassigned DRAFTs. Unknown ownership/verification is not resolved by the script. Source changes or collisions fail for manual reconciliation; replay never overwrites database edits. Public catalogue reads remain static. No fleet management endpoint/UI is exposed yet.
+
+Run `npm run test:unit`, `npm run test:fleet` and `npm run test:integration` sequentially. Fleet tests use only the isolated test database and retain clearly synthetic fixtures/history. The migration rehearsal now checks all migration checksums, 16 tables and nine triggers. Development/test backup locations, migration results and retained disposable target are recorded in [KILIRIDE_PHASE2_REPORT.md](KILIRIDE_PHASE2_REPORT.md). Stop before 2C unless separately authorized.
 
 1. Use Node 24.14 or compatible supported Node 24, npm and Docker Desktop with Linux containers.
 2. Install the lockfile with `npm ci` (Windows PowerShell: `npm.cmd ci`).

@@ -14,8 +14,10 @@
     "typecheck": "tsc --noEmit --incremental false",
     "test:unit": "tsx --test tests/unit/*.test.ts",
     "test:integration": "node scripts/run.mjs test",
-    "test": "npm run test:unit && npm run test:integration",
-    "admin:provision": "node --conditions=react-server --import tsx scripts/provision-admin.ts"
+    "test": "npm run test:unit && npm run test:fleet && npm run test:integration",
+    "admin:provision": "node --conditions=react-server --import tsx scripts/provision-admin.ts",
+    "fleet:import": "node --conditions=react-server --import tsx scripts/import-legacy-fleet.ts",
+    "test:fleet": "node scripts/run.mjs test-fleet"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

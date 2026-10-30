@@ -1,5 +1,18 @@
 # Phase 0 test report
 
+## Phase 2A/2B verification (2026-10-30)
+
+**PASS for the authorized local 2A/2B slice.** Complete commands, migration/import results and limitations: [KILIRIDE_PHASE2_REPORT.md](KILIRIDE_PHASE2_REPORT.md).
+
+- Schema validation/client generation passed on unchanged Prisma 7.10.1. Fresh disposable rehearsal applied both migrations, repeated with no pending work, and verified checksums/history, 16 tables, nine triggers and the CUSTOMER probe.
+- Both local databases were backed up before additive deployment. Row counts/content fingerprints for all eight existing identity tables matched before/after migration. Test migration status is current. No resets or destructive SQL.
+- Development CLI dry-run/apply/replay passed: two new unassigned DRAFTs, then UNCHANGED. Read-only checks confirmed stable IDs, KES 2,500/3,500 base prices, no owners, no approval references and zero photos/reviews.
+- `node scripts/run.mjs test-fleet`: initial 4/4 passed; final 5/5 passed (15.4s), including an explicit admin self-approval denial test added during review. Coverage includes concurrent/repeated import, source conflicts, edit preservation, ownership/private data, role/MFA denials, controlled transitions, evidence requirements, concurrent decisions, schema constraints and immutable history. `npm test` includes this suite. TypeScript and strict lint also passed after the final test addition.
+- `node node_modules/tsx/dist/cli.mjs --test tests/unit/*.test.ts`: 8/8 passed. `node scripts/run.mjs test`: 8/8 existing auth/Mailpit/Chromium tests passed (1.8m), including catalogue/WhatsApp, mobile/keyboard and MFA/recovery/CSRF regressions.
+- `node node_modules/typescript/bin/tsc --noEmit --incremental false`, strict ESLint (`. --max-warnings 0`) and `npm.cmd run build`: passed. Runtime dependency audit reported zero vulnerabilities. Existing public code/Phase 1 migration/lockfile remain unchanged.
+
+Fleet service tests use synthetic role/MFA posture fixtures and real Better Auth sessions; actual MFA challenge coverage comes from the existing API/browser suite. No new fleet UI/upload workflow, external provider, hosted CI, production, live payment, manual full-device/screen-reader session or fresh restore drill was tested. Initial sandbox access/subprocess failures were resolved by authorized retries; no functional test failures occurred. Historical Phase 1 reports below remain dated evidence.
+
 ## Staged CI review follow-up (2026-10-30)
 
 The two consecutive `npm run db:migrate:test` steps originally checked repeat-deploy idempotency. The second is now redundant: `scripts/rehearse-migrations.mjs` deploys twice to a fresh disposable database and asserts unchanged migration history. Removed only the duplicate workflow step and named the remaining test migration/status/rehearsal steps; no runtime, schema or helper changes.

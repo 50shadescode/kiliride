@@ -28,6 +28,11 @@ model User {
   roles            RoleAssignment[]
   twoFactors       TwoFactor[]
   auditEvents      AuditLog[]
+  vehicleOwnerships VehicleOwnership[] @relation("VehicleOwner")
+  vehicleAssignments VehicleOwnership[] @relation("VehicleAssigner")
+  vehiclePhotos VehiclePhoto[]
+  vehicleReviews VehicleReview[]
+  vehicleEvents VehicleListingEvent[]
 }
 
 model Session {
@@ -115,4 +120,133 @@ model RateLimit {
   key         String @unique
   count       Int
   lastRequest BigInt
+}
+
+enum VehicleListingStatus {
+  DRAFT
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum VehicleReviewDecision {
+  APPROVED
+  REJECTED
+}
+
+model Vehicle {
+  id String @id @default(dbgenerated("gen_random_uuid()::text"))
+  publicId String @unique
+  make String
+  model String
+  category String
+  description String?
+  seats Int
+  fuelType String
+  transmission String
+  location String
+  currency String @default("KES")
+  baseHalfDay Int
+  baseFullDay Int
+  status VehicleListingStatus @default(DRAFT)
+  revision Int @default(0)
+  approvedReviewId String? @unique
+  approvedReview VehicleReview? @relation("CurrentApproval", fields: [approvedReviewId], references: [id], onDelete: Restrict)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  ownership VehicleOwnership?
+  registration VehicleRegistration?
+  photos VehiclePhoto[]
+  reviews VehicleReview[] @relation("VehicleReviews")
+  events VehicleListingEvent[]
+  legacyImport LegacyVehicleImport?
+
+  @@index([status, createdAt])
+}
+
+// A row with ownerId = null is explicitly UNASSIGNED. No synthetic owner.
+// Ownership transfers are not implemented in 2A/2B.
+model VehicleOwnership {
+  vehicleId String @id
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+  ownerId String?
+  owner User? @relation("VehicleOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  assignedById String?
+  assignedBy User? @relation("VehicleAssigner", fields: [assignedById], references: [id], onDelete: Restrict)
+  assignedAt DateTime? @db.Timestamptz(3)
+  reason String?
+  evidenceReference String?
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([ownerId])
+}
+
+// Private data, deliberately absent from the general vehicle projection.
+model VehicleRegistration {
+  vehicleId String @id
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+  registrationNumber String @unique
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+}
+
+// Metadata foundation only. No upload endpoint, storage provider or legacy images.
+model VehiclePhoto {
+  id String @id @default(dbgenerated("gen_random_uuid()::text"))
+  vehicleId String
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+  uploadedById String
+  uploadedBy User @relation(fields: [uploadedById], references: [id], onDelete: Restrict)
+  storageKey String @unique
+  contentType String
+  byteSize Int
+  altText String
+  position Int
+  isCover Boolean @default(false)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  @@unique([vehicleId, position])
+}
+
+model VehicleReview {
+  id String @id @default(dbgenerated("gen_random_uuid()::text"))
+  vehicleId String
+  vehicle Vehicle @relation("VehicleReviews", fields: [vehicleId], references: [id], onDelete: Restrict)
+  reviewerId String
+  reviewer User @relation(fields: [reviewerId], references: [id], onDelete: Restrict)
+  decision VehicleReviewDecision
+  vehicleRevision Int
+  reason String
+  criteriaVersion String?
+  evidenceReference String?
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  approvedVehicle Vehicle? @relation("CurrentApproval")
+
+  @@index([vehicleId, createdAt])
+}
+
+model VehicleListingEvent {
+  id String @id @default(dbgenerated("gen_random_uuid()::text"))
+  vehicleId String
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+  actorId String?
+  actor User? @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  fromStatus VehicleListingStatus?
+  toStatus VehicleListingStatus
+  reason String
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([vehicleId, createdAt])
+}
+
+// Immutable source provenance, private and never used as approval/availability.
+model LegacyVehicleImport {
+  sourceId String @id
+  vehicleId String @unique
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+  sourceHash String
+  sourceSnapshot Json
+  operator String
+  importedAt DateTime @default(now()) @db.Timestamptz(3)
 }

@@ -1,5 +1,11 @@
 # KiliRide — Commercial Product Roadmap
 
+## Phase 2A/2B local status (2026-10-30)
+
+IMPLEMENTED under explicit authorization: additive fleet/ownership/private-registration/photo-metadata/review/history schema, controlled server-only lifecycle, backed-up/rehearsed local migrations and idempotent import. Development has two unassigned legacy DRAFTs; public routes/components still read unchanged static data. No real owners, photographs, availability or verification evidence were invented.
+
+Acceptance: 8 unit tests, 5 fleet database/service tests and 8 Phase 1 integration/browser regressions passed, along with TypeScript, strict lint and production build. See [KILIRIDE_PHASE2_REPORT.md](KILIRIDE_PHASE2_REPORT.md) for exact evidence and limits. Stop before 2C. Host forms/dashboards, uploads, admin UI and public database cutover require further approval; real ownership/verification/insurance/privacy decisions remain prerequisites for approval/publication. No payment, commit, push or deployment work.
+
 ## Phase 1 local implementation status (2026-10-29)
 
 Milestones 1A–1D were implemented locally under CODEX_PROMPT_002: isolated PostgreSQL, Prisma migrations, Better Auth identity/recovery/MFA, server-side roles and ownership, minimal protected routes, tests and a GitHub Actions workflow. Existing static fleet, pricing, vehicle IDs and WhatsApp flow are retained. See KILIRIDE_PHASE1_REPORT.md for executed acceptance checks and limitations; the earlier Phase 0 backlog below is preserved as historical planning.

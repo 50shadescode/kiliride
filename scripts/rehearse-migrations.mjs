@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import assert from 'node:assert/strict';
 import { randomUUID, createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { Pool } from 'pg';
 import { assertLocalDatabase } from './local-safety.mjs';
@@ -31,16 +31,17 @@ try {
   migrate('status');
   const repeated = await target.query('SELECT migration_name, checksum, finished_at, rolled_back_at FROM "_prisma_migrations" ORDER BY migration_name');
   assert.deepEqual(repeated.rows, history.rows);
-  assert.equal(history.rowCount, 1);
-  const migration = history.rows[0];
-  assert.equal(migration.migration_name, '202610290001_identity');
-  assert.ok(migration.finished_at);
-  assert.equal(migration.rolled_back_at, null);
-  assert.equal(migration.checksum, createHash('sha256').update(readFileSync('prisma/migrations/202610290001_identity/migration.sql')).digest('hex'));
+  const expected = readdirSync('prisma/migrations', { withFileTypes: true }).filter(entry => entry.isDirectory()).map(entry => entry.name).sort();
+  assert.deepEqual(history.rows.map(row => row.migration_name), expected);
+  for (const migration of history.rows) {
+    assert.ok(migration.finished_at);
+    assert.equal(migration.rolled_back_at, null);
+    assert.equal(migration.checksum, createHash('sha256').update(readFileSync(`prisma/migrations/${migration.migration_name}/migration.sql`)).digest('hex'));
+  }
   const tables = await target.query("SELECT tablename FROM pg_tables WHERE schemaname = 'public'");
-  assert.equal(tables.rowCount, 9);
+  assert.equal(tables.rowCount, 16);
   const triggers = await target.query("SELECT tgname FROM pg_trigger WHERE NOT tgisinternal ORDER BY tgname");
-  assert.deepEqual(triggers.rows.map(row => row.tgname), ['audit_immutable', 'user_customer_role']);
+  assert.deepEqual(triggers.rows.map(row => row.tgname), ['audit_immutable', 'legacy_import_immutable', 'user_customer_role', 'vehicle_event_immutable', 'vehicle_listing_guard', 'vehicle_ownership_guard', 'vehicle_ownership_no_delete', 'vehicle_review_guard', 'vehicle_review_immutable']);
   // Exercise the migrated role trigger without retaining fixture data.
   const connection = await target.connect();
   try {
@@ -49,7 +50,7 @@ try {
     const roles = await connection.query('SELECT role FROM "RoleAssignment" WHERE "userId" = $1', [user.rows[0].id]);
     assert.deepEqual(roles.rows.map(row => row.role), ['CUSTOMER']);
   } finally { await connection.query('ROLLBACK'); connection.release(); }
-  console.log('PASS: clean migration, repeat no-op, status, SQL checksum, nine tables and CUSTOMER trigger.');
+  console.log('PASS: clean migrations, repeat no-op, status, SQL checksums, 16 tables, nine triggers and CUSTOMER probe.');
   console.log(`Disposable database retained for inspection: ${name}. Existing databases were not migrated or reset.`);
 } finally {
   await target?.end();

@@ -1,5 +1,13 @@
 # KiliRide architecture: Phase 0 proposal
 
+## Phase 2A/2B implemented foundation (2026-10-30)
+
+Authorized scope is fleet persistence and legacy import only. `src/server/fleet/` adds a pure lifecycle/mapping layer, local operator import and server-only permission-checked ownership/read/transition services over the existing Prisma/PostgreSQL and Better Auth boundary. No additional service, provider or dependency was introduced. No new fleet HTTP handlers or UI exist; the services are foundations for later authorized workflows.
+
+The additive fleet migration introduces Vehicle, VehicleOwnership, private VehicleRegistration, VehiclePhoto metadata, VehicleReview, VehicleListingEvent and immutable LegacyVehicleImport provenance. Mutations use transactions, per-vehicle row locks, expected revisions and the existing AuditLog. SQL additionally enforces identifier stability, assignment/review prerequisites, lifecycle edges and history immutability. Approval is separate from booking availability.
+
+The two legacy vehicles were imported into local development as unassigned DRAFTs without photos or review decisions. `KILIFI_FLEET` remains the only public catalogue source; routes, CarCard, pricing and WhatsApp enquiries are unchanged. This is an explicit staged migration boundary, not a runtime fallback between competing sources. Real owners, approved criteria/evidence and publication/privacy policy are prerequisites for later public DB cutover. See [Phase 2 report](KILIRIDE_PHASE2_REPORT.md) for migration/backups, tests and the stop boundary before 2C.
+
 ## Phase 1 local implementation addendum
 
 The Phase 0 assessment below remains historical evidence. Phase 1 was authorized locally through CODEX_PROMPT_002. Implemented: modular Next.js auth Route Handler, Better Auth 1.7.14 with Prisma 7.10.1/PostgreSQL adapter, isolated PostgreSQL 17 development/test containers, Mailpit, server-only env/DB/auth/authorization modules, minimal protected account/host/admin pages and an audited host activation service. PostgreSQL is local, not managed hosting. No fleet records moved.

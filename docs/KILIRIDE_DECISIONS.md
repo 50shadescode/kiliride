@@ -1,5 +1,13 @@
 # KiliRide decision register
 
+## Phase 2A/2B decisions (2026-10-30)
+
+- APPROVED by current user request: additive fleet/ownership/photo-metadata/review schema, controlled server-only lifecycle foundation, safe local migrations and idempotent import; stop before 2C. Branch is feature/phase2-fleet-management. No commit/push/deployment authorization.
+- IMPLEMENTED migration strategy: preserve immutable public slugs; PostgreSQL UUID internal keys; keep the static public catalogue unchanged until a separately approved cutover. Legacy imports are unassigned DRAFTs and never imply approval, ownership, photographs or rental availability.
+- IMPLEMENTED technical safeguards: private registration/provenance models; append-only review/history; transactional audit; row locking/revision checks for decisions; advisory lock and immutable hashes for non-overwriting import replay. No ownership transfers in this slice.
+- PENDING: B09/B12/B13/B14 still govern real owner/evidence validation, verification criteria/expiry, insurance, document retention and photograph/plate publication. Criteria/evidence reference fields are a recordkeeping foundation, not approved policy or proof of external document authenticity. No real vehicle assignment/review was made.
+- UNCHANGED: half-day duration/rounding and reservation fee policies remain unapproved. Imported base amounts preserve existing KES prices; raw historical fee/availability values do not become authoritative booking rules.
+
 ## Phase 1 authorization and implemented decisions
 
 This addendum supersedes Phase 0-only scope statements below for this local implementation. The user authorized CODEX_PROMPT_002 and milestones 1A–1D; no deployment or production access is authorized.
