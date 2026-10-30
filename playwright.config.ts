@@ -14,7 +14,8 @@ export default defineConfig({
   webServer: {
     command: "node scripts/run.mjs serve-test",
     url: "http://localhost:3100/login",
-    reuseExistingServer: !process.env.CI,
+    // Never send credentials or mutations to an unverified pre-existing process.
+    reuseExistingServer: false,
     timeout: 120_000,
     env: { DATABASE_URL: process.env.TEST_DATABASE_URL!, BETTER_AUTH_URL: "http://localhost:3100" },
   },

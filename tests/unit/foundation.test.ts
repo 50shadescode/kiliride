@@ -25,9 +25,10 @@ for (const tz of ["Africa/Nairobi", "America/New_York", "Europe/London"]) {
   });
 }
 
-test("local database guard rejects remote, development in tests, and URL override parameters", () => {
+test("test database guard requires loopback, kiliride_test and explicit port 55433", () => {
   assertLocalDatabase("postgresql://localhost:55433/kiliride_test", true);
-  for (const url of [undefined, "postgresql://production.example/kiliride_test", "postgresql://127.0.0.1/kiliride_dev", "postgresql://127.0.0.1/kiliride_test?host=remote", "https://127.0.0.1/kiliride_test"]) {
+  assertLocalDatabase("postgresql://127.0.0.1:55433/kiliride_test", true);
+  for (const url of [undefined, "postgresql://production.example:55433/kiliride_test", "postgresql://127.0.0.1:55433/kiliride_dev", "postgresql://127.0.0.1:55433/kiliride_test?host=remote", "https://127.0.0.1:55433/kiliride_test", "postgresql://127.0.0.1:55432/kiliride_test", "postgresql://127.0.0.1:5432/kiliride_test", "postgresql://127.0.0.1/kiliride_test", "postgresql://127.0.0.1:55433/other"]) {
     assert.throws(() => assertLocalDatabase(url, true));
   }
   assert.throws(() => assertLocalHttp("https://mail.example"));

@@ -1,12 +1,17 @@
 import { test, expect, request as requests, type APIRequestContext } from "@playwright/test";
 import { randomBytes, randomUUID, createHmac } from "node:crypto";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { Pool } from "pg";
 import { assertLocalDatabase, assertLocalHttp } from "../../scripts/local-safety.mjs";
 
 const base = "http://localhost:3100";
 const pool = new Pool({ connectionString: assertLocalDatabase(process.env.TEST_DATABASE_URL, true), max: 2 });
 const mailpit = assertLocalHttp(process.env.MAILPIT_URL);
+test.beforeAll(async () => {
+  expect(process.env.DATABASE_URL).toBe(process.env.TEST_DATABASE_URL);
+  const { rows } = await pool.query<{ database: string }>('SELECT current_database() AS database');
+  expect(rows[0].database).toBe("kiliride_test");
+});
 test.afterAll(async () => { await pool.end(); });
 
 async function client() { return requests.newContext({ baseURL: base, extraHTTPHeaders: { origin: base } }); }
@@ -123,11 +128,82 @@ test("MFA admin provisioning, controlled host activation, CSRF and audit integri
     expect((await admin.post("/api/admin/host-activation", { data: payload })).status()).toBe(200);
     expect((await host.get("/host")).status()).toBe(200);
     expect((await host.get("/admin")).status()).toBe(404);
+    expect((await host.post("/api/admin/host-activation", { data: { userId: a.id, reason: "Host must not activate other accounts" } })).status()).toBe(403);
     expect((await host.get(`/api/account/${a.id}`)).status()).toBe(403);
+    expect((await admin.get(`/api/account/${h.id}`)).status()).toBe(403);
+    const missingOrigin = await requests.newContext({ baseURL: base, storageState: await admin.storageState() });
+    try {
+      expect((await missingOrigin.post("/api/admin/host-activation", { data: payload })).status()).toBe(403);
+    } finally { await missingOrigin.dispose(); }
+    const forbiddenGrant = await pool.query('SELECT role FROM "RoleAssignment" WHERE "userId" = $1 AND role = $2', [a.id, "HOST"]);
+    expect(forbiddenGrant.rowCount).toBe(0);
     const events = await pool.query('SELECT id FROM "AuditLog" WHERE "subjectId" = $1 AND action = $2', [h.id, "HOST_ACTIVATED"]);
     expect(events.rowCount).toBe(1);
     await expect(pool.query('UPDATE "AuditLog" SET reason = $1 WHERE id = $2', ["tampered", events.rows[0].id])).rejects.toThrow("append-only");
+    await expect(pool.query('DELETE FROM "AuditLog" WHERE id = $1', [events.rows[0].id])).rejects.toThrow("append-only");
   } finally { await admin.dispose(); await host.dispose(); }
+});
+
+test("administrator provisioning rejects unverified and non-MFA accounts without granting privileges", async () => {
+  const c = await client();
+  try {
+    const user = await signup(c);
+    const rejectedProvision = async () => {
+      const result = spawnSync(process.execPath, ["--conditions=react-server", "--import", "tsx", "scripts/provision-admin.ts", user.email, "Local test operator", "Synthetic negative provisioning test"], {
+        env: { ...process.env, DATABASE_URL: assertLocalDatabase(process.env.TEST_DATABASE_URL, true) }, encoding: "utf8",
+      });
+      expect(result.error).toBeUndefined();
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("Provisioning refused");
+      const roles = await pool.query('SELECT role FROM "RoleAssignment" WHERE "userId" = $1', [user.id]);
+      expect(roles.rows.map(row => row.role)).toEqual(["CUSTOMER"]);
+      const audit = await pool.query('SELECT id FROM "AuditLog" WHERE "subjectId" = $1', [user.id]);
+      expect(audit.rowCount).toBe(0);
+    };
+    await rejectedProvision();
+    await verify(c, user.email);
+    expect((await post(c, "sign-in/email", { email: user.email, password: user.password })).status()).toBe(200);
+    await rejectedProvision();
+    expect((await post(c, "two-factor/enable", { password: user.password })).status()).toBe(200);
+    // Starting enrollment must not satisfy the requirement to verify the second factor.
+    await rejectedProvision();
+    expect((await c.get("/admin")).status()).toBe(404);
+    expect((await c.get(`/api/account/${user.id}`)).status()).toBe(200);
+  } finally { await c.dispose(); }
+});
+
+test("MFA recovery codes authenticate once and replay cannot create a session", async () => {
+  test.setTimeout(180_000);
+  const c = await client();
+  try {
+    const user = await signup(c); await verify(c, user.email);
+    expect((await post(c, "sign-in/email", { email: user.email, password: user.password })).status()).toBe(200);
+    const enroll = await post(c, "two-factor/enable", { password: user.password });
+    expect(enroll.status()).toBe(200);
+    const { totpURI, backupCodes } = await enroll.json() as { totpURI: string; backupCodes: string[] };
+    expect(backupCodes.length).toBeGreaterThan(1);
+    expect((await post(c, "two-factor/verify-totp", { code: totp(totpURI) })).status()).toBe(200);
+    expect((await post(c, "sign-out", {})).status()).toBe(200);
+    const challenge = async () => {
+      const response = await post(c, "sign-in/email", { email: user.email, password: user.password });
+      expect(response.status()).toBe(200);
+      expect((await response.json()).twoFactorRedirect).toBe(true);
+      expect((await c.get(`/api/account/${user.id}`)).status()).toBe(401);
+    };
+    await challenge();
+    expect((await post(c, "two-factor/verify-backup-code", { code: "invalid-recovery-code" })).status()).toBe(401);
+    expect((await c.get(`/api/account/${user.id}`)).status()).toBe(401);
+    expect((await post(c, "two-factor/verify-backup-code", { code: backupCodes[0] })).status()).toBe(200);
+    expect((await c.get(`/api/account/${user.id}`)).status()).toBe(200);
+    expect((await post(c, "sign-out", {})).status()).toBe(200);
+    await challenge();
+    expect((await post(c, "two-factor/verify-backup-code", { code: backupCodes[0] })).status()).toBe(401);
+    expect((await c.get(`/api/account/${user.id}`)).status()).toBe(401);
+    // A different unused code still works; failure above is consumption, not broken MFA.
+    expect((await post(c, "two-factor/verify-backup-code", { code: backupCodes[1] })).status()).toBe(200);
+    expect((await c.get(`/api/account/${user.id}`)).status()).toBe(200);
+    expect((await post(c, "sign-out", {})).status()).toBe(200);
+  } finally { await c.dispose(); }
 });
 
 test("anonymous and invalid-origin requests fail closed", async ({ request }) => {
@@ -144,9 +220,17 @@ test("customer completes signup, verification, login and logout in the browser",
   test.setTimeout(180_000);
   async function submit(name: string, endpoint: string) {
     const send = async () => {
-      const pending = page.waitForResponse(response => response.url().endsWith(endpoint) && response.request().method() === "POST");
-      await page.getByRole("button", { name, exact: true }).click();
-      return pending;
+      try {
+        const [response] = await Promise.all([
+          page.waitForResponse(response => response.url().endsWith(endpoint) && response.request().method() === "POST", { timeout: 20000 }),
+          page.getByRole("button", { name, exact: true }).click(),
+        ]);
+        return response;
+      } catch {
+        // Report navigation shape only; never include credentials or token values.
+        const url = new URL(page.url());
+        throw new Error(`Expected authentication POST was not observed; path=${url.pathname}; query keys=${[...url.searchParams.keys()].join(",")}`);
+      }
     };
     let response = await send();
     if (response.status() === 429) {

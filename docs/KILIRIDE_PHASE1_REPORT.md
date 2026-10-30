@@ -1,5 +1,21 @@
 # KiliRide Phase 1 implementation report
 
+## Final acceptance update: 2026-10-30
+
+**PASS for local Phase 1 acceptance.** See [KILIRIDE_PHASE1_ACCEPTANCE.md](KILIRIDE_PHASE1_ACCEPTANCE.md) for criterion-by-criterion evidence, exact commands, initial failures and limitations. This update supersedes the historical outcome/security totals below; it does not authorize production or Phase 2.
+
+Fixed Playwright isolation by refusing all pre-existing test servers. Test database validation now requires loopback port 55433 and database kiliride_test; a real occupied-server rejection test and runtime database-identity assertions passed. Added test migration status and a restricted disposable-database migration rehearsal to local tooling/CI. No application routes, schema SQL, Prisma version or dependencies changed.
+
+Expanded negative tests passed for HOST denial of administrator mutations, administrator cross-account reads, missing-Origin CSRF, rejected provisioning without verified email/completed MFA, audit DELETE protection, invalid recovery codes and consumed-code replay. Successful replay rejection was followed by successful use of a different unused code, proving MFA was still functional.
+
+Final checks: 6/6 unit tests; 8/8 real PostgreSQL/Mailpit integration/browser tests; TypeScript; strict ESLint; production build; both dependency audits (zero reported advisories); 16 client artifacts free of configured secret matches. Both existing databases report current migrations. A fresh disposable database applied the migration and repeated deployment without changes; checksum, table and trigger checks passed.
+
+The first full browser run had 7 passes and a signup POST timeout with a React warning. After adding bounded, sanitized submission diagnostics, the focused journey and full suite passed. The root cause was not established and no application fix is claimed; retain this as an intermittent P2 test observation. Sandbox subprocess/access failures were retried with permission. Hosted CI, production operation and a new backup/restore rehearsal were not performed.
+
+Changed files in this acceptance slice: `playwright.config.ts`, `scripts/local-safety.mjs`, `scripts/run.mjs`, `tests/unit/foundation.test.ts`, `tests/integration/identity.spec.ts`, `.github/workflows/ci.yml`, `docs/KILIRIDE_LOCAL_SETUP.md`, this report and `docs/KILIRIDE_TEST_REPORT.md`. Added `tests/unit/server-isolation.test.ts`, `scripts/rehearse-migrations.mjs`, `scripts/rehearsal.prisma.config.ts` and `docs/KILIRIDE_PHASE1_ACCEPTANCE.md`. Branch: `verify/phase1-final-acceptance`; no commit or deployment. Disposable targets and synthetic test history are retained; names are recorded in the acceptance report. No resets or existing-database migrations occurred.
+
+## Historical implementation report: 2026-10-29
+
 Date: 2026-10-29 (Africa/Nairobi). Scope: CODEX_PROMPT_002 milestones 1A–1D, local implementation only. No deployment, production access, live payment, fleet migration or Phase 2 work occurred. Existing Git changes and static rental behavior were preserved.
 
 **Outcome: local Phase 1 implementation and functional acceptance checks passed; ready for owner review.** Five development-tool security advisories remain documented. This is not production release approval.

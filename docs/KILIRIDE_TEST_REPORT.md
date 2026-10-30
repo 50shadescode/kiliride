@@ -1,5 +1,44 @@
 # Phase 0 test report
 
+## Staged CI review follow-up (2026-10-30)
+
+The two consecutive `npm run db:migrate:test` steps originally checked repeat-deploy idempotency. The second is now redundant: `scripts/rehearse-migrations.mjs` deploys twice to a fresh disposable database and asserts unchanged migration history. Removed only the duplicate workflow step and named the remaining test migration/status/rehearsal steps; no runtime, schema or helper changes.
+
+Isolation review: CI generates local credentials/URLs with `scripts/local-env.mjs`, uses separate Docker development/test instances and has no workflow/job/step environment overrides or production-secret references. `status-test` replaces DATABASE_URL with the guarded loopback:55433/kiliride_test URL. Rehearsal starts from that same guarded test URL and only creates a random kiliride_rehearsal database on port 55433; its dedicated Prisma config rejects other hosts, ports and database-name patterns. The separate CI development-schema setup remains on its own loopback database at port 55432.
+
+Executed: workflow parsed with installed `js-yaml`; assertions passed for one test deploy, one status check, one rehearsal, expected ordering and absent environment overrides. `node node_modules/tsx/dist/cli.mjs --test tests/unit/foundation.test.ts` passed 5/5. `node scripts/run.mjs status-test` passed, showing kiliride_test at 127.0.0.1:55433 is up to date. Staged and working-tree whitespace checks passed. Initial subprocess EPERM failures required authorized retries; an unavailable `yaml` module was replaced by the already-installed `js-yaml` parser without installing packages. Hosted GitHub Actions and the unchanged full application suite/rehearsal were not rerun for this workflow-only correction; their earlier local evidence remains below. No commit, push, deployment or Phase 2 work.
+
+## Phase 1 final acceptance verification (2026-10-30)
+
+**Final local result: PASS.** This section supersedes earlier Phase 1 check totals. Full evidence and retained disposable database names are in [KILIRIDE_PHASE1_ACCEPTANCE.md](KILIRIDE_PHASE1_ACCEPTANCE.md).
+
+| Command / check | Actual result |
+|---|---|
+| `docker compose ps` | PASS: both PostgreSQL instances and Mailpit healthy; test port 55433. |
+| `node node_modules/prisma/build/index.js validate` | PASS. |
+| `node node_modules/prisma/build/index.js migrate status` | PASS: development schema current. |
+| `node scripts/run.mjs status-test` | PASS: kiliride_test on 55433 current. |
+| `node scripts/rehearse-migrations.mjs` | PASS: fresh disposable database, migration deploy, repeat no-op, status, SQL checksum, nine tables, two triggers and rolled-back CUSTOMER probe. Existing databases untouched by migrations. |
+| `node node_modules/tsx/dist/cli.mjs --test tests/unit/*.test.ts` | PASS: 6/6, including port/name guard negatives and occupied-server rejection. |
+| Initial `node scripts/run.mjs test` | FAIL: 7 passed, browser signup POST timeout; 4.2 minutes. |
+| `node scripts/run.mjs test identity.spec.ts --grep "customer completes"` | PASS: focused browser journey, 10.1 seconds. |
+| Final `node scripts/run.mjs test` | PASS: 8/8, 1.3 minutes, including new provisioning/recovery-code negatives. |
+| `node node_modules/typescript/bin/tsc --noEmit --incremental false` | PASS. |
+| `node node_modules/eslint/bin/eslint.js . --max-warnings 0` | PASS, zero warnings. |
+| `npm.cmd run build` | PASS, Next.js 16.4.3. |
+| `npm.cmd audit --json` | PASS: zero advisories across full tree. |
+| `npm.cmd audit --omit=dev --audit-level=high` | PASS: zero vulnerabilities. |
+| Client-secret scan | PASS: 16 JS/map files in .next/static; no configured auth/database secret matches. Values never printed. |
+| `git diff --check` | PASS; LF/CRLF notices only. |
+
+Isolation is verified at configuration, runner, connection and process boundaries: tests require loopback:55433/kiliride_test; server reuse is disabled in local runs and CI; a dummy occupied server receives only readiness probes before Playwright refuses it; database identity and API-created test rows are checked. A read-only corroborating query found zero test-prefix users in development.
+
+New security assertions cover rejected provisioning for unverified/non-MFA/incompletely enrolled users without role/audit side effects; HOST denial of administrator mutations; ADMIN cross-account denial; missing-Origin rejection with an authenticated admin; audit deletion denial; invalid recovery codes; consumed-code replay after logout/new challenge; and successful use of a second unused code. Existing authentication, verification, reset, expiry, logout, role injection, CSRF, catalogue/WhatsApp and viewport/keyboard checks remain passing.
+
+Failure chronology: sandbox access/subprocess restrictions required authorized retries. The initial browser signup timeout was accompanied by a React update-before-mount warning. Bounded, jointly awaited click/response diagnostics were added without logging credentials. Focused and full reruns passed, but the underlying intermittent cause is not established (P2 observation). Smooth-scroll and environment-color warnings are non-fatal. No application fix for that warning is claimed.
+
+Not executed: hosted CI, production/TLS/email checks, live payments, full manual device/screen-reader QA or a fresh backup/restore drill. Existing 2026-10-29 restore evidence remains historical. No database reset, Prisma upgrade, deployment or Phase 2 work. Six unit and eight integration/browser cases are the final totals, not the earlier five/six totals below.
+
 ## Phase 1 final acceptance addendum (2026-10-29)
 
 The Phase 0 record below remains historical. Phase 1 final local results:

@@ -4,8 +4,8 @@ export function assertLocalDatabase(value, testOnly = false) {
   const names = testOnly ? ['/kiliride_test'] : ['/kiliride_dev', '/kiliride_test'];
   if (!['postgres:', 'postgresql:'].includes(url.protocol) ||
       !['localhost', '127.0.0.1', '[::1]'].includes(url.hostname) ||
-      !names.includes(url.pathname) || url.search || url.hash) {
-    throw new Error('Refusing database access: only named loopback KiliRide databases are allowed.');
+      !names.includes(url.pathname) || url.search || url.hash || (testOnly && url.port !== '55433')) {
+    throw new Error('Refusing database access: only named loopback KiliRide databases are allowed; tests require port 55433.');
   }
   return value;
 }

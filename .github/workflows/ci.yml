@@ -19,8 +19,13 @@ jobs:
       - run: docker compose up -d --wait
       - run: npm run db:generate
       - run: npm run db:migrate
-      - run: npm run db:migrate:test
-      - run: npm run db:migrate:test
+      - name: Apply migrations to the isolated test database
+        run: npm run db:migrate:test
+      - name: Check isolated test migration status
+        run: node scripts/run.mjs status-test
+      # The rehearsal deploys twice and verifies unchanged migration history.
+      - name: Rehearse migrations on a fresh isolated test database
+        run: node scripts/rehearse-migrations.mjs
       - run: npm run lint -- --max-warnings 0
       - run: npm run typecheck
       - run: npm run test:unit
