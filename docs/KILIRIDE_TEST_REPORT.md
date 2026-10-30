@@ -1,5 +1,17 @@
 # Phase 0 test report
 
+## Phase 2C host management verification (2026-10-30)
+
+**PASS for local Milestone 2C.** Exact commands, migration backups, isolation and limitations are in [KILIRIDE_PHASE2_REPORT.md](KILIRIDE_PHASE2_REPORT.md).
+
+- Unit tests: 10/10; fleet database/service tests: 9/9; browser/API suite: 10/10 (1.6m), including all existing identity/MFA/recovery-code replay, catalogue and WhatsApp regressions.
+- New coverage: host create/edit/submit, incomplete drafts, rejected-listing feedback/resubmission, escaped feedback, role/record isolation, forged authority input, legacy claim denial, concurrent edits/submissions, transactional rollback, private DTOs, immediate role revocation and CSRF/body/input limits. Browser form layout/keyboard checks passed at 375px and 1280px.
+- Schema validation/generation, strict TypeScript/ESLint, production build and runtime audit (zero vulnerabilities) passed. No package/auth/public catalogue changes.
+- Rehearsal on a fresh port-55433 database applied all three migrations, verified repeat no-op/checksums/history/16 tables/ten triggers. Both local databases were backed up and safely migrated; status is current. Eleven table fingerprints matched immediately after migration on both targets; development fingerprints still matched after tests. Legacy development records remain unassigned DRAFTs.
+- Corrections during verification: two oversized synthetic registration fixtures (initial fleet 7/9) and a new streaming loading boundary that changed authorization HTTP responses to 200 (initial browser 8/10). Fixtures corrected and boundary removed; final full suites passed without weakening assertions. Sandbox subprocess EPERM retries succeeded with authorization.
+
+No uploads/admin approval UI/payments/reservations, hosted CI run, new restore drill or full manual screen-reader/device audit. Synthetic role/rejection fixtures stayed in the isolated test database; real authentication/MFA paths were tested separately. Stop after 2C. Earlier results below are dated history.
+
 ## Phase 2A/2B verification (2026-10-30)
 
 **PASS for the authorized local 2A/2B slice.** Complete commands, migration/import results and limitations: [KILIRIDE_PHASE2_REPORT.md](KILIRIDE_PHASE2_REPORT.md).

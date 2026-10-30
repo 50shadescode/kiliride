@@ -1,5 +1,11 @@
 # KiliRide — Commercial Product Roadmap
 
+## Phase 2C local status (2026-10-30)
+
+IMPLEMENTED under CODEX TASK 003C: protected HOST dashboard, new unverified DRAFTs, owned DRAFT/REJECTED editing, complete-draft submission, status/feedback and record-scoped permissions. Legacy records remain unassigned; the static public catalogue is unchanged. No images, admin approval UI, payments or reservations.
+
+Acceptance PASS: 10 unit, 9 fleet database/service and 10 browser/API tests; schema/migration rehearsal/status, TypeScript, strict ESLint, production build and runtime audit. See [KILIRIDE_PHASE2_REPORT.md](KILIRIDE_PHASE2_REPORT.md). STOP after 2C. The next possible slice is 2D photographs/storage, subject to separate authorization and storage/privacy requirements; it has not begun. Earlier stop points below are historical.
+
 ## Phase 2A/2B local status (2026-10-30)
 
 IMPLEMENTED under explicit authorization: additive fleet/ownership/private-registration/photo-metadata/review/history schema, controlled server-only lifecycle, backed-up/rehearsed local migrations and idempotent import. Development has two unassigned legacy DRAFTs; public routes/components still read unchanged static data. No real owners, photographs, availability or verification evidence were invented.

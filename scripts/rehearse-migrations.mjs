@@ -41,7 +41,7 @@ try {
   const tables = await target.query("SELECT tablename FROM pg_tables WHERE schemaname = 'public'");
   assert.equal(tables.rowCount, 16);
   const triggers = await target.query("SELECT tgname FROM pg_trigger WHERE NOT tgisinternal ORDER BY tgname");
-  assert.deepEqual(triggers.rows.map(row => row.tgname), ['audit_immutable', 'legacy_import_immutable', 'user_customer_role', 'vehicle_event_immutable', 'vehicle_listing_guard', 'vehicle_ownership_guard', 'vehicle_ownership_no_delete', 'vehicle_review_guard', 'vehicle_review_immutable']);
+  assert.deepEqual(triggers.rows.map(row => row.tgname), ['audit_immutable', 'legacy_import_immutable', 'user_customer_role', 'vehicle_event_immutable', 'vehicle_listing_guard', 'vehicle_ownership_guard', 'vehicle_ownership_no_delete', 'vehicle_review_guard', 'vehicle_review_immutable', 'vehicle_submission_guard']);
   // Exercise the migrated role trigger without retaining fixture data.
   const connection = await target.connect();
   try {
@@ -50,7 +50,7 @@ try {
     const roles = await connection.query('SELECT role FROM "RoleAssignment" WHERE "userId" = $1', [user.rows[0].id]);
     assert.deepEqual(roles.rows.map(row => row.role), ['CUSTOMER']);
   } finally { await connection.query('ROLLBACK'); connection.release(); }
-  console.log('PASS: clean migrations, repeat no-op, status, SQL checksums, 16 tables, nine triggers and CUSTOMER probe.');
+  console.log('PASS: clean migrations, repeat no-op, status, SQL checksums, 16 tables, ten triggers and CUSTOMER probe.');
   console.log(`Disposable database retained for inspection: ${name}. Existing databases were not migrated or reset.`);
 } finally {
   await target?.end();

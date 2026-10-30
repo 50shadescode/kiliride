@@ -10,6 +10,8 @@ import { KILIFI_FLEET } from "../../src/lib/fleet";
 import { importLegacyFleet } from "../../src/server/fleet/import";
 import { FleetError } from "../../src/server/fleet/lifecycle";
 import { assignVehicleOwner, readFleetVehicle, readVehicleRegistration, transitionVehicleListing } from "../../src/server/fleet/service";
+import { createHostVehicle, editHostVehicle, getHostVehicle, listHostVehicles, submitHostVehicle } from "../../src/server/fleet/host";
+import { ZodError } from "zod";
 
 assertLocalDatabase(process.env.TEST_DATABASE_URL, true);
 assert.equal(process.env.DATABASE_URL, process.env.TEST_DATABASE_URL);
@@ -38,10 +40,10 @@ async function actor(role?: "HOST" | "ADMIN", mfa = false): Promise<Actor> {
 }
 async function draft() {
   return db.vehicle.create({ data: {
-    publicId: `synthetic-${randomUUID()}`, make: "Synthetic", model: "Test fixture", category: "Test",
+    publicId: `synthetic-${randomUUID()}`, make: "Synthetic", model: "Test fixture", category: "Test", description: "Synthetic listing for testing only.",
     seats: 5, fuelType: "Petrol", transmission: "Automatic", location: "Synthetic test location",
     baseHalfDay: 2500, baseFullDay: 3500, ownership: { create: {} },
-    registration: { create: { registrationNumber: `SYNTHETIC-${randomUUID().toUpperCase()}` } },
+    registration: { create: { registrationNumber: `S-${randomUUID().toUpperCase()}` } },
   } });
 }
 const denied = (status: number) => (error: unknown) => error instanceof AccessError && error.status === status;
@@ -52,6 +54,97 @@ before(async () => {
   admin = await actor("ADMIN", true); noMfaAdmin = await actor("ADMIN");
 });
 after(async () => { await db.$disconnect(); });
+
+const hostDraft = (complete = true) => ({ make: "Synthetic", model: "Host fixture", category: "Test", location: "Test location", seats: 5, fuelType: "Petrol", transmission: "Automatic", baseHalfDay: 2500, baseFullDay: 3500, description: complete ? "Synthetic host listing for testing only." : "", registrationNumber: complete ? `S-${randomUUID()}` : "" });
+
+test("host creation derives ownership from session, rejects forged authority and requires a verified HOST", async () => {
+  const values = hostDraft();
+  for (const [headers, status] of [[new Headers(), 401], [customer.headers, 403], [admin.headers, 403]] as const) {
+    await assert.rejects(createHostVehicle(headers, values), denied(status));
+    await assert.rejects(listHostVehicles(headers), denied(status));
+  }
+  await db.user.update({ where: { id: otherHost.id }, data: { emailVerified: false } });
+  try { await assert.rejects(createHostVehicle(otherHost.headers, values), denied(403)); }
+  finally { await db.user.update({ where: { id: otherHost.id }, data: { emailVerified: true } }); }
+  const count = await db.vehicle.count();
+  for (const forged of [{ ownerId: otherHost.id }, { status: "APPROVED" }, { publicId: "vitz-142s" }, { approvedReviewId: randomUUID() }]) await assert.rejects(createHostVehicle(host.headers, { ...values, ...forged }), ZodError);
+  assert.equal(await db.vehicle.count(), count);
+  const vehicle = await createHostVehicle(host.headers, values);
+  const stored = await db.vehicle.findUniqueOrThrow({ where: { id: vehicle.id }, include: { ownership: true, reviews: true } });
+  assert.equal(vehicle.status, "DRAFT"); assert.equal(vehicle.revision, 0);
+  assert.equal(stored.ownership?.ownerId, host.id); assert.equal(stored.ownership?.origin, "HOST_DECLARED");
+  assert.ok(stored.ownership?.declaredAt); assert.equal(stored.ownership?.assignedById, null); assert.equal(stored.ownership?.evidenceReference, null);
+  assert.equal(stored.approvedReviewId, null); assert.equal(stored.reviews.length, 0);
+  assert.equal(await db.vehicleListingEvent.count({ where: { vehicleId: vehicle.id, actorId: host.id, toStatus: "DRAFT" } }), 1);
+  assert.equal(await db.auditLog.count({ where: { subjectId: vehicle.id, action: "HOST_VEHICLE_CREATED", actorId: host.id } }), 1);
+  const listed = await listHostVehicles(host.headers);
+  assert.ok(listed.some(v => v.id === vehicle.id));
+  assert.equal((await listHostVehicles(otherHost.headers)).some(v => v.id === vehicle.id), false);
+  for (const key of ["ownership", "registration", "legacyImport", "approvedReviewId"]) assert.equal(Object.hasOwn(listed[0], key), false);
+});
+
+test("host record scoping denies cross-account access and legacy claims without modifying legacy records", async () => {
+  await importLegacyFleet("Synthetic test operator", true);
+  const values = hostDraft();
+  const vehicle = await createHostVehicle(host.headers, values);
+  const legacy = await db.vehicle.findMany({ where: { legacyImport: { isNot: null } }, include: { ownership: true, registration: true, reviews: true, legacyImport: true } });
+  for (const item of [vehicle, ...legacy]) {
+    await assert.rejects(getHostVehicle(otherHost.headers, item.id), denied(404));
+    await assert.rejects(editHostVehicle(otherHost.headers, item.id, { ...values, expectedRevision: item.revision }), denied(404));
+    await assert.rejects(submitHostVehicle(otherHost.headers, item.id, { expectedRevision: item.revision }), denied(404));
+  }
+  for (const item of legacy) {
+    assert.equal(item.ownership?.origin, "UNASSIGNED");
+    await assert.rejects(getHostVehicle(host.headers, item.id), denied(404));
+    await assert.rejects(db.vehicleOwnership.update({ where: { vehicleId: item.id }, data: { ownerId: host.id, origin: "HOST_DECLARED", declaredAt: new Date() } }));
+  }
+  assert.deepEqual(await db.vehicle.findMany({ where: { legacyImport: { isNot: null } }, include: { ownership: true, registration: true, reviews: true, legacyImport: true } }), legacy);
+  await db.roleAssignment.create({ data: { userId: otherHost.id, role: "ADMIN", createdAt: new Date(0) } });
+  try { await assert.rejects(getHostVehicle(otherHost.headers, vehicle.id), denied(404)); }
+  finally { await db.roleAssignment.delete({ where: { userId_role: { userId: otherHost.id, role: "ADMIN" } } }); }
+});
+
+test("host validation, concurrent edits and duplicate registration failures are atomic", async () => {
+  const values = hostDraft(false);
+  const vehicle = await createHostVehicle(host.headers, values);
+  await assert.rejects(submitHostVehicle(host.headers, vehicle.id, { expectedRevision: 0 }), ZodError);
+  await assert.rejects(db.vehicle.update({ where: { id: vehicle.id }, data: { status: "PENDING_REVIEW", revision: 1 } }));
+  assert.equal(await db.auditLog.count({ where: { subjectId: vehicle.id, action: "HOST_VEHICLE_SUBMITTED" } }), 0);
+  const complete = hostDraft();
+  const results = await Promise.allSettled([editHostVehicle(host.headers, vehicle.id, { ...complete, expectedRevision: 0 }), editHostVehicle(host.headers, vehicle.id, { ...complete, expectedRevision: 0 })]);
+  assert.equal(results.filter(r => r.status === "fulfilled").length, 1);
+  assert.ok(results.some(r => r.status === "rejected" && r.reason instanceof FleetError && r.reason.code === "CONFLICT"));
+  assert.equal(await db.auditLog.count({ where: { subjectId: vehicle.id, action: "HOST_VEHICLE_EDITED" } }), 1);
+  const duplicate = await createHostVehicle(host.headers, hostDraft());
+  await assert.rejects(editHostVehicle(host.headers, duplicate.id, { ...complete, model: "Must roll back", expectedRevision: 0 }));
+  assert.equal((await getHostVehicle(host.headers, duplicate.id)).model, "Host fixture");
+  assert.equal((await getHostVehicle(host.headers, duplicate.id)).revision, 0);
+  assert.equal(await db.auditLog.count({ where: { subjectId: duplicate.id, action: "HOST_VEHICLE_EDITED" } }), 0);
+  const submissions = await Promise.allSettled([submitHostVehicle(host.headers, vehicle.id, { expectedRevision: 1 }), submitHostVehicle(host.headers, vehicle.id, { expectedRevision: 1 })]);
+  assert.equal(submissions.filter(r => r.status === "fulfilled").length, 1);
+  assert.equal(await db.auditLog.count({ where: { subjectId: vehicle.id, action: "HOST_VEHICLE_SUBMITTED" } }), 1);
+  await assert.rejects(editHostVehicle(host.headers, vehicle.id, { ...complete, expectedRevision: 2 }), FleetError);
+});
+
+test("rejected listings can be revised and resubmitted while reviews stay immutable and approved/suspended listings stay read-only", async () => {
+  const values = hostDraft();
+  const vehicle = await createHostVehicle(host.headers, values);
+  await submitHostVehicle(host.headers, vehicle.id, { expectedRevision: 0 });
+  await transitionVehicleListing(admin.headers, { vehicleId: vehicle.id, expectedRevision: 1, toStatus: "REJECTED", reason: "Synthetic feedback: correct the description.", evidenceReference: "PRIVATE-SYNTHETIC-EVIDENCE" });
+  const detail = await getHostVehicle(host.headers, vehicle.id);
+  assert.equal(detail.status, "REJECTED"); assert.equal(detail.reviews[0].reason, "Synthetic feedback: correct the description.");
+  for (const key of ["evidenceReference", "criteriaVersion", "reviewerId"]) assert.equal(Object.hasOwn(detail.reviews[0], key), false);
+  await assert.rejects(submitHostVehicle(host.headers, vehicle.id, { expectedRevision: 2 }), FleetError);
+  await editHostVehicle(host.headers, vehicle.id, { ...values, description: "Revised synthetic description.", expectedRevision: 2 });
+  assert.equal((await getHostVehicle(host.headers, vehicle.id)).status, "DRAFT");
+  await submitHostVehicle(host.headers, vehicle.id, { expectedRevision: 3 });
+  await transitionVehicleListing(admin.headers, { vehicleId: vehicle.id, expectedRevision: 4, toStatus: "APPROVED", reason, criteriaVersion: "SYNTHETIC-ONLY", evidenceReference: "SYNTHETIC-ONLY" });
+  await assert.rejects(editHostVehicle(host.headers, vehicle.id, { ...values, expectedRevision: 5 }), FleetError);
+  await transitionVehicleListing(admin.headers, { vehicleId: vehicle.id, expectedRevision: 5, toStatus: "SUSPENDED", reason });
+  await assert.rejects(editHostVehicle(host.headers, vehicle.id, { ...values, expectedRevision: 6 }), FleetError);
+  assert.equal(await db.vehicleReview.count({ where: { vehicleId: vehicle.id } }), 2);
+  assert.equal(await db.vehicleListingEvent.count({ where: { vehicleId: vehicle.id } }), 7);
+});
 
 test("legacy dry-run, concurrent import and replay preserve unassigned drafts without fabricated trust", async () => {
   const count = await db.vehicle.count();

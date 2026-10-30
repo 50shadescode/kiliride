@@ -1,5 +1,13 @@
 # KiliRide architecture: Phase 0 proposal
 
+## Phase 2C host management (2026-10-30)
+
+The authorized 2C slice adds protected `/host`, `/host/vehicles/new` and `/host/vehicles/[id]` pages. Server-rendered pages call `src/server/fleet/host.ts` directly. Thin `/api/host/vehicles` and per-ID edit/submit handlers use the same services; each service rechecks verified identity, HOST role and current ownership. ADMIN does not bypass ownership in host endpoints. No client-supplied owner, state, identifier or verification fields are accepted.
+
+Draft creation atomically records the session user as a **HOST_DECLARED**, unverified listing owner. This is account association, not proof of legal ownership. Existing unassigned legacy vehicles cannot be claimed through this workflow. DRAFT/REJECTED details can be edited; revision checks and row locks protect concurrent saves/submissions. Rejected edits return to DRAFT with review history retained. Complete drafts can enter PENDING_REVIEW; pending, approved and suspended listings are read-only here. Approval services remain unexposed.
+
+Shared strict Zod schemas validate form/API fields and saved submission data. Mutations require exact same Origin, JSON and a 16 KiB body limit; private responses disable caching. Detail DTOs include only the owner's private registration and review decision/reason/time, excluding reviewer identity, evidence references and import provenance. UI includes empty/loading/error states, labels, keyboard focus and mobile layout. The new additive migration records ownership origin and adds a submission completeness trigger. No dependencies, uploads, admin approval UI or public catalogue source changes. See [Phase 2 report](KILIRIDE_PHASE2_REPORT.md) for executed checks. Earlier sections describe their dated implementation state.
+
 ## Phase 2A/2B implemented foundation (2026-10-30)
 
 Authorized scope is fleet persistence and legacy import only. `src/server/fleet/` adds a pure lifecycle/mapping layer, local operator import and server-only permission-checked ownership/read/transition services over the existing Prisma/PostgreSQL and Better Auth boundary. No additional service, provider or dependency was introduced. No new fleet HTTP handlers or UI exist; the services are foundations for later authorized workflows.

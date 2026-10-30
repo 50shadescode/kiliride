@@ -4,6 +4,7 @@ import type { Prisma } from "@/generated/prisma/client";
 import { AccessError, requireIdentity, requireRole } from "../authorization";
 import { getDb } from "../db";
 import { assertListingTransition, FleetError } from "./lifecycle";
+import { completeVehicleDraft, draftValues } from "@/lib/validation/host-vehicle";
 
 const idSchema = z.string().uuid();
 const reasonSchema = z.string().trim().min(10).max(1000);
@@ -54,7 +55,7 @@ export async function assignVehicleOwner(headers: Headers, input: unknown) {
     if (vehicle.status !== "DRAFT" || vehicle.ownership?.ownerId) throw new FleetError("CONFLICT");
     const owner = await tx.user.findUnique({ where: { id: data.ownerId }, select: { emailVerified: true, roles: { select: { role: true } } } });
     if (!owner?.emailVerified || !owner.roles.some(role => role.role === "HOST")) throw new AccessError(403);
-    const assignment = { ownerId: data.ownerId, assignedById: actor.id, assignedAt: new Date(), reason: data.reason, evidenceReference: data.evidenceReference };
+    const assignment = { ownerId: data.ownerId, origin: "ADMIN_ASSIGNED" as const, assignedById: actor.id, assignedAt: new Date(), reason: data.reason, evidenceReference: data.evidenceReference };
     await tx.vehicleOwnership.upsert({ where: { vehicleId: vehicle.id }, create: { vehicleId: vehicle.id, ...assignment }, update: assignment });
     await tx.vehicle.update({ where: { id: vehicle.id }, data: { revision: { increment: 1 } } });
     await tx.auditLog.create({ data: { actorId: actor.id, subjectId: vehicle.id, action: "VEHICLE_OWNER_ASSIGNED", reason: data.reason } });
@@ -73,6 +74,10 @@ export async function transitionVehicleListing(headers: Headers, input: unknown)
     if (vehicle.revision !== data.expectedRevision) throw new FleetError("CONFLICT");
     assertListingTransition(vehicle.status, data.toStatus, actor.administrator);
     if (data.toStatus === "PENDING_REVIEW" && !vehicle.ownership?.ownerId) throw new FleetError("EVIDENCE_REQUIRED");
+    if (data.toStatus === "PENDING_REVIEW") {
+      const registration = await tx.vehicleRegistration.findUnique({ where: { vehicleId: vehicle.id } });
+      completeVehicleDraft(draftValues(vehicle, registration?.registrationNumber));
+    }
     let approvedReviewId: string | null = null;
     if (data.toStatus === "APPROVED" || data.toStatus === "REJECTED") {
       if (!actor.administrator || vehicle.ownership?.ownerId === actor.id) throw new AccessError(403);

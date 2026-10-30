@@ -1,4 +1,77 @@
-# Phase 2 report: Milestones 2A and 2B only
+# Phase 2 report: through Milestone 2C
+
+## Milestone 2C final local result (2026-10-30)
+
+**PASS for authorized Milestone 2C.** Authority: CODEX TASK 003C and the 2C section of `docs/prompts/CODEX_PROMPT_003.md`. Root `AGENTS.md`, architecture, data model, decisions and existing reports were read before implementation. Branch confirmed as `feature/phase2-fleet-management`; the working tree was initially clean. This section supersedes the earlier stop-before-2C statements; the 2A/2B execution record below is retained as historical evidence.
+
+### Implemented scope and code evidence
+
+| Capability | Status and evidence |
+|---|---|
+| Protected HOST dashboard | IMPLEMENTED: `src/app/host/page.tsx`; owned listings, prices, status, empty state and links from the existing account destination. |
+| Create DRAFT | IMPLEMENTED: `/host/vehicles/new`, `src/components/host/VehicleForm.tsx`, `createHostVehicle` in `src/server/fleet/host.ts`. Server generates immutable public ID and derives owner from the current verified-email HOST session. |
+| Edit owned listings | IMPLEMENTED: `/host/vehicles/[id]`, `editHostVehicle`; DRAFT and REJECTED only. Rejected edits return to DRAFT while keeping reviews. Pending, approved and suspended records are read-only. |
+| Submit complete drafts | IMPLEMENTED: `submitHostVehicle`; validates saved specifications, positive integer KES prices/seats, description and registration, then atomically changes DRAFT to PENDING_REVIEW. No publication or approval implied. |
+| Status and feedback | IMPLEMENTED: owner detail page shows review decision, reason and Nairobi timestamp; up to ten latest reviews. Evidence references, criteria, reviewer identity and legacy provenance are excluded from host DTOs. Feedback is rendered as escaped text. |
+| Record authorization and request defenses | IMPLEMENTED: existing `requireRole` plus owner-scoped list/read/row locks; strict Zod input; matching Origin, JSON and 16 KiB limit; private no-store responses. ADMIN membership provides no cross-owner access through these endpoints. |
+| Mutation consistency | IMPLEMENTED: expected revision, row lock, transaction and audit for create/edit/submit. State changes append immutable listing events. Duplicate registration errors roll back edits; stale requests return conflict. |
+| Legacy preservation | IMPLEMENTED/VERIFIED: no claim endpoint or owner input. Legacy rows remain unassigned DRAFTs with stable IDs/prices and no invented approval/evidence. Public catalogue remains unchanged static `KILIFI_FLEET`. |
+
+The three HTTP route modules are `src/app/api/host/vehicles/route.ts`, `[id]/route.ts` and `[id]/submit/route.ts`. They expose list/create, owned detail/edit and submit only. `src/server/fleet/host-http.ts` handles request/error boundaries; `src/lib/validation/host-vehicle.ts` centralizes accepted fields and submission completeness. `src/app/host/layout.tsx` supplies no-index metadata; `error.tsx` gives generic retry UI. Forms disable actions during hydration/saves and expose labeled fields, validation feedback, keyboard focus and unsaved-change guidance.
+
+### Schema, migration and isolation
+
+Additive migration `202610300002_host_vehicle_management` introduces `VehicleOwnershipOrigin` (`UNASSIGNED`, `ADMIN_ASSIGNED`, `HOST_DECLARED`) and nullable `declaredAt`. Existing assignment provenance is retained; previously assigned rows become ADMIN_ASSIGNED and null-owner rows become UNASSIGNED. A HOST_DECLARED record associates a newly created listing with its host account and declaration time, with no administrator/evidence fields. This is not legal ownership verification. SQL rejects converting an existing unassigned row to a host declaration and still rejects transfers/deletion. The existing admin-assignment service now explicitly writes ADMIN_ASSIGNED.
+
+The migration replaces the ownership constraint/guard and adds `vehicle_submission_guard` to require description/category/registration before review. No existing migration was edited, no table was dropped and no data was reset. Submission completeness is a technical listing requirement; real KYC, insurance, photograph and verification criteria remain pending.
+
+Docker and sanitized live database checks confirmed development `127.0.0.1:55432/kiliride_dev` and test `127.0.0.1:55433/kiliride_test`, with separate containers/volumes. Test runners force and validate the isolated test URL. Playwright refuses an occupied server and starts its own test-configured server. Host/browser/service mutations used only the test database; the development database received only the additive migration.
+
+Before application, `pg_dump -Fc` backups were copied to ignored `backups/kiliride-pre-phase2c-20261030.dump` (47,654 bytes) and `backups/kiliride-test-pre-phase2c-20261030.dump` (73,820 bytes), with originals in their respective containers' `/tmp/` directories. Do not publish these backups. The ignored `backups/phase2c-before.json` stores counts/fingerprints, not row contents.
+
+Fresh rehearsal target `kiliride_rehearsal_b59506abcb4b43438484b980ab884419` on port 55433 applied all three migrations. Repeat deployment was a no-op; history/checksums, 16 tables, ten triggers and a rolled-back CUSTOMER-role probe passed. The disposable target is retained. Deployment then succeeded on both backed-up local targets; status reports three migrations and up-to-date schemas on each.
+
+Immediately after migration and before tests, all 11 checked tables (eight identity tables, Vehicle, VehicleRegistration, LegacyVehicleImport) matched their pre-migration row counts/content fingerprints in both databases. Existing test ownership origins were four UNASSIGNED and five ADMIN_ASSIGNED. After tests, the same development fingerprints still matched, with exactly two UNASSIGNED legacy records. No development host, review or synthetic vehicle was created.
+
+Rollback: disable/revert the new host UI and endpoints while retaining the additive schema and current origin-aware assignment service. Old assignment writes that omit origin are incompatible with the strengthened constraint and must not be re-enabled unchanged. Existing public/authentication code is unaffected. Do not edit applied SQL, reset/drop databases or restore over live data; restore backups only to a separately approved recovery target and reconcile later writes. No new restore drill was executed in 2C.
+
+### Executed checks
+
+| Command/check | Final outcome |
+|---|---|
+| `node node_modules/prisma/build/index.js validate` / `generate` | PASS; unchanged Prisma 7.10.1. Generated client ignored. |
+| `node scripts/rehearse-migrations.mjs` | PASS: fresh/repeat deployment, status, checksums/history and ten triggers. |
+| `node scripts/run.mjs migrate` / `migrate-test` | PASS: new migration only, backed-up local databases. |
+| `node scripts/run.mjs status-test`; `node node_modules/prisma/build/index.js migrate status` | PASS: three migrations, both local schemas current. |
+| Before/after fingerprints and final development comparison | PASS: 11 tables unchanged by migration; development remains unchanged after test execution. |
+| `node node_modules/tsx/dist/cli.mjs --test tests/unit/*.test.ts` | PASS: 10/10 (5.35s), including strict host input/completeness and occupied-test-server rejection. |
+| `node scripts/run.mjs test-fleet` | PASS: 9/9 (6.86s), four new host service tests plus all five 2A/2B tests. |
+| `node scripts/run.mjs test` | PASS: 10/10 (1.6m), two new host browser/API tests plus all eight existing regressions. |
+| `node node_modules/typescript/bin/tsc --noEmit --incremental false` | PASS after final application/test corrections. |
+| `node node_modules/eslint/bin/eslint.js . --max-warnings 0` | PASS, zero warnings. |
+| `npm.cmd run build` | PASS: production compilation, TypeScript and 15 static pages; new host routes remain dynamic. |
+| `npm.cmd audit --omit=dev --audit-level=high` | PASS: zero runtime vulnerabilities; no dependency changes. Full dev-dependency audit was not repeated. |
+| Git whitespace/scope review | PASS: public routes/components/fleet/pricing/WhatsApp, authentication/authorization, package/lockfile, CI and earlier migration SQL unchanged. |
+
+New service tests cover anonymous/customer/unverified-host rejection, session-derived ownership, forged authority fields, cross-host/dual-role isolation, unassigned legacy claim rejection, incomplete drafts, database submission guard, concurrent edit/submit conflicts, duplicate-registration rollback, rejection feedback privacy, resubmission, immutable review retention and read-only approved/suspended states. Existing tests retain import replay/conflict and admin self-approval/MFA restrictions.
+
+New browser/API tests cover actual form creation/edit/submission, validation, saved-before-submit behavior, read-only pending state, escaped rejection feedback and resubmission. Layout checks at 375px/1280px and keyboard label/focus checks passed. API cases cover private caching, anonymous/customer/other-host denial, legacy exclusion, forged fields, negative prices, invalid JSON/content type, oversized bodies, missing/invalid Origin, stale revisions and immediate HOST-role revocation. A new draft's generated public slug returns 404. Existing tests passed catalogue/WhatsApp/unknown-route, signup/verification/recovery/logout, MFA enrollment/provisioning, one-use recovery-code replay and CSRF flows.
+
+Synthetic service fixtures use real Better Auth sessions with explicit test-only role/MFA posture. The feedback browser test seeds a synthetic independent rejection transaction directly in the isolated test database; no administrator approval route/UI was built. Actual MFA challenges remain covered by the existing identity suite. Test records are retained; no database reset or cleanup deletion of fleet/audit history occurred.
+
+Issues found and corrected: the initial fleet run passed 7/9 because two old synthetic registrations exceeded the new 40-character form limit; fixture identifiers were shortened and 9/9 passed. The initial browser run passed 8/10: a new host `loading.tsx` streamed 200 before authorization returned 307/404. Removing that streaming boundary restored the existing HTTP access contract, and the full 10/10 suite passed. No authorization assertion was weakened. Sandbox subprocess/Prisma/build EPERM attempts succeeded after authorized retries; PowerShell's npm.ps1 restriction was handled with npm.cmd. Existing color/smooth-scroll notices were non-fatal.
+
+### Files, manual reproduction and stop boundary
+
+Changed/added: schema and new migration; `scripts/rehearse-migrations.mjs`; `src/server/fleet/{host,host-http,service}.ts`; shared host validation; host API routes; host dashboard/detail/new/layout/error pages; `VehicleForm`; `tests/unit/host-vehicle.test.ts`, `tests/database/fleet.test.ts`, `tests/integration/host.spec.ts`; this report plus architecture, data model, decisions, roadmap and test report. No packages or CI changes were needed; existing CI test discovery includes the new coverage.
+
+To verify manually with an authorized local HOST account: open `/account` -> Host access; create a draft with make/model/category/location/specifications and prices; try submitting without description/registration; save complete details and submit. Confirm PENDING_REVIEW/read-only behavior and absence from the public catalogue. A different host must receive not-found for the internal detail URL and 404 from its API. Feedback/resubmission can be reproduced with the isolated synthetic browser suite; no real approval/evidence should be fabricated. Development currently has no user accounts, so no fake host was created there for this task.
+
+No unresolved blocker for the local 2C scope. No hosted CI run, full manual screen-reader/device audit, production execution or new restore drill is claimed. Real ownership reconciliation, approved verification/insurance/privacy criteria and genuine photographs remain prerequisites for later approval/publication. No image uploads, admin approval screens, payments, automated reservations or public DB cutover were implemented. No commit, push or deployment. **STOP after 2C; 2D and later require separate authorization.**
+
+---
+
+## Historical Milestones 2A/2B execution record
 
 Date: 2026-10-30, Africa/Nairobi. Branch verified: `feature/phase2-fleet-management`. Authority: user authorization for 2A/2B and `docs/prompts/CODEX_PROMPT_003.md`. The existing untracked prompt was preserved. No commit, push or deployment.
 

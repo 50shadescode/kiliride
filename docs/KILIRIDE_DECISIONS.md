@@ -1,5 +1,12 @@
 # KiliRide decision register
 
+## Phase 2C authorization and decisions (2026-10-30)
+
+- APPROVED by CODEX TASK 003C: protected host listing dashboard, create/edit drafts, submit for review, feedback, record permissions and tests. Stop after 2C; no uploads, admin approval screens, payments, reservations, commit, push or deployment.
+- IMPLEMENTED: HOST_DECLARED ownership origin records the session user's declaration for a newly created listing, separately from evidence-backed administrator assignment. It does not assert real ownership or verification. Legacy null-owner rows remain UNASSIGNED and cannot be claimed by host APIs. Existing assignment/approval controls remain.
+- IMPLEMENTED conservative lifecycle: edit DRAFT/REJECTED only; editing a rejected listing returns it to DRAFT. Pending/approved/suspended listings are read-only in host management. Submission requires saved description, registration, specifications and positive integer base prices. Photo/KYC requirements remain gated to later approved milestones/policy; submission grants no public visibility or approval.
+- UNCHANGED: B09/B12/B13/B14 remain pending for real verification, retention, insurance and publication. No real owners/evidence were fabricated; test review fixtures are explicitly synthetic and isolated on port 55433. No dependency/provider additions or changes to public pricing/WhatsApp.
+
 ## Phase 2A/2B decisions (2026-10-30)
 
 - APPROVED by current user request: additive fleet/ownership/photo-metadata/review schema, controlled server-only lifecycle foundation, safe local migrations and idempotent import; stop before 2C. Branch is feature/phase2-fleet-management. No commit/push/deployment authorization.

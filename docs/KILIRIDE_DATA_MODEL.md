@@ -1,5 +1,19 @@
 # Proposed domain model and invariants
 
+## Phase 2C implemented extension (2026-10-30)
+
+`202610300002_host_vehicle_management` adds `VehicleOwnershipOrigin` and `VehicleOwnership.declaredAt`. No new tables or destructive data operations. Existing assigned rows become ADMIN_ASSIGNED while null-owner rows become UNASSIGNED; original assignment fields are retained.
+
+| Origin | Required fields | Meaning |
+|---|---|---|
+| UNASSIGNED | Owner, declaration and assignment fields null | Legacy/unresolved ownership; absent from every host's inventory. |
+| HOST_DECLARED | Session-derived ownerId, declaredAt; administrator/evidence fields null | New listing associated with an existing verified-email HOST account, with no verification claim. Only inserted for a new listing; cannot claim an existing unassigned record. |
+| ADMIN_ASSIGNED | Owner, MFA administrator, assignedAt, reason and evidence reference; declaredAt null | Existing controlled administrator assignment path, preserved. |
+
+The ownership constraint/trigger enforces these distinct provenance states; ownership transfer/deletion remains unsupported. New vehicles retain DB-generated internal UUIDs and immutable server-generated `vehicle-<uuid>` public IDs; legacy slugs do not change. Every host create/edit/submit writes an atomic audit event; creation and state changes also append listing history.
+
+Review submission requires saved specifications, positive integer KES prices/seats, description and private registration. Description/registration may be empty while drafting. The database additionally rejects submission without nonblank description/category/registration. This is listing completeness only, not KYC/insurance criteria. Hosts can edit DRAFT or REJECTED; rejected edits return to DRAFT, retaining immutable review history. Only the existing independent MFA-admin service can approve/reject; it has no new HTTP/UI entry point. Public catalogue remains static. Earlier subset descriptions below are historical.
+
 ## Phase 2A/2B implemented subset (2026-10-30)
 
 `202610300001_fleet_foundation` adds seven tables without altering identity data. Internal vehicle IDs are DB-generated UUIDs; immutable unique `publicId` preserves legacy slugs. Base prices are positive integer KES; timestamps use timestamptz. Nullable description records missing source information without inventing content.
