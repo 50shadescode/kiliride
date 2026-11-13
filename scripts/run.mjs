@@ -5,6 +5,7 @@ import { assertLocalDatabase } from './local-safety.mjs';
 const [task, ...args] = process.argv.slice(2);
 if (['migrate-test', 'status-test', 'test', 'serve-test', 'test-fleet', 'test-catalogue', 'serve-catalogue-test'].includes(task)) {
   process.env.DATABASE_URL = assertLocalDatabase(process.env.TEST_DATABASE_URL, true);
+  process.env.KILIRIDE_ENV = 'test';
   process.env.BETTER_AUTH_URL = 'http://localhost:3100';
 } else if (task === 'migrate') {
   assertLocalDatabase(process.env.DATABASE_URL);
@@ -16,7 +17,7 @@ if (['test-catalogue','serve-catalogue-test'].includes(task)) {
 }
 const commands = {
   // Files share retained test records; serialize suites, not explicit race tests.
-  'test-fleet': ['--conditions=react-server', '--import', 'tsx', '--test', '--test-concurrency=1', 'tests/database/fleet.test.ts', 'tests/database/images.test.ts', 'tests/database/admin.test.ts', 'tests/database/catalogue.test.ts'],
+  'test-fleet': ['--conditions=react-server', '--import', 'tsx', '--test', '--test-concurrency=1', 'tests/database/fleet.test.ts', 'tests/database/images.test.ts', 'tests/database/admin.test.ts', 'tests/database/catalogue.test.ts', 'tests/database/runtime.test.ts'],
   migrate: ['node_modules/prisma/build/index.js', 'migrate', 'deploy'],
   'migrate-test': ['node_modules/prisma/build/index.js', 'migrate', 'deploy'],
   'status-test': ['node_modules/prisma/build/index.js', 'migrate', 'status'],

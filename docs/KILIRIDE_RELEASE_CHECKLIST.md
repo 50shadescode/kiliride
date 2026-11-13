@@ -1,5 +1,19 @@
 # Commercial release gates
 
+## B03 runtime review gate (2026-11-13)
+
+**NO-GO for staging deployment and real-user launch pending external verification.** [Release 002 evidence](KILIRIDE_MVP_RELEASE_002_REPORT.md), [operator configuration contract](KILIRIDE_HOSTED_RUNTIME.md).
+
+- [x] Explicit hosted validation; local/test isolation; canonical HTTPS auth/cookie configuration; authenticated verified-TLS SMTP; delivery switch and staging allowlist.
+- [x] Verified-TLS pg options, bounded pool, separate migration config and read-only role preflight; existing six migrations retained.
+- [x] Local quality gates, OFF/ON regression, artifact privacy/secret scans and zero-advisory online audits passed.
+- [ ] Approved provider/domain/TLS/proxy/secret manifest; verify actual host cookies, origins, MFA, rate limits and logs.
+- [ ] Authorized hosted DB connection/role/grant checks, forbidden mutations, migration repeatability and recovery prerequisites.
+- [ ] Authorized SMTP sender/DNS/test recipients and real verification/reset delivery.
+- [ ] Matching CI for this uncommitted candidate and separately authorized release checkpoint/deployment.
+- [ ] Later B05 storage and all remaining pilot gates; no production catalogue or real policy activation.
+
+
 ## Phase 2F review gate (2026-10-31)
 
 **NO-GO for production catalogue cutover.** Local controlled-preview engineering is separate from business-policy and production readiness. See [Phase 2 report](KILIRIDE_PHASE2_REPORT.md) for executed checks. No deployment is authorized.

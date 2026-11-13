@@ -1,5 +1,12 @@
 # KiliRide test report
 
+## MVP release task 002: B03 runtime (2026-11-13)
+
+Local gates PASS: TypeScript, strict ESLint, 22 unit tests, 30 database/service tests, OFF browser/API 16/16 (2.7m), ON catalogue 3/3 (25.5s), Prisma local/synthetic hosted validation, six-migration status/rehearsal/repeat-no-op, production build, 41 private-file traces and 25 client artifact secret scans. Online full/runtime audits both zero. Node v24.14.1/npm 11.11.0. See [complete commands, failures, preservation exceptions and remaining external checks](KILIRIDE_MVP_RELEASE_002_REPORT.md).
+
+Initial OFF run had one ECONNRESET failure (15/16); full rerun passed, no test weakened. Actual startup smoke exposed premature Next Ready logging under instrumentation-only validation; early production config validation was added. Hosted TLS/proxy/database roles, SMTP delivery and hosted CI for this candidate are PENDING. Local tests do not close B03 or authorize staging deployment. Current committed Phase 2F HEAD is 00bcd074119d1bd9fe550244ceef2404082bcffa; earlier checkpoint statements below are history.
+
+
 ## MVP release task 001 — Phase 2F security closeout (2026-11-13)
 
 **PASS for all requested local quality gates. B02 closed; B01 checkpoint preparation PASS, actual commit/push and hosted CI pending.** Branch `feature/phase2-fleet-management`, HEAD `4571bdc` unchanged. Node v24.14.1, npm 11.11.0. See [security closeout](KILIRIDE_PHASE2F_SECURITY_CLOSEOUT.md) for advisories, dependency paths, compatibility review and the full file inventory. No waiver, deployment, publication or real policy activation.

@@ -7,6 +7,7 @@ import { z } from "zod";
 import { getDb } from "./db";
 import { getEnv } from "./env";
 import { sendIdentityMail } from "./mail";
+import { authSecurityOptions } from "./runtime-config";
 
 function createAuth() {
   const env = getEnv();
@@ -16,7 +17,7 @@ function createAuth() {
     secret: env.BETTER_AUTH_SECRET,
     trustedOrigins: [env.BETTER_AUTH_URL],
     database: prismaAdapter(getDb(), { provider: "postgresql", transaction: true }),
-    advanced: { database: { generateId: false } },
+    advanced: { database: { generateId: false }, ...authSecurityOptions(env) },
     logger: { disabled: true },
     onAPIError: { errorURL: "/verify-email" },
     databaseHooks: {

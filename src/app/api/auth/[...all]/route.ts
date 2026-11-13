@@ -1,5 +1,7 @@
 import { getAuth } from "@/server/auth";
 import { readLimitedBody } from "@/server/request-body";
+import { getEnv } from "@/server/env";
+import { authRequestAllowed } from "@/server/runtime-config";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,6 +23,7 @@ function publicAuthResult(value: unknown): unknown {
 
 async function handle(request: Request) {
   try {
+    if (!authRequestAllowed(request, getEnv())) return Response.json({ message: "Access denied." }, { status: 403, headers: { "Cache-Control": "no-store" } });
     const path = new URL(request.url).pathname.replace(/^\/api\/auth\//, "");
     if (!endpoints.has(path) && !/^reset-password\/[A-Za-z0-9_-]+$/.test(path)) return Response.json({ message: "Not found." }, { status: 404 });
     if (request.method === "POST") {

@@ -1,5 +1,8 @@
 # KiliRide MVP pilot launch gap report
 
+> **2026-11-13 release 002 update:** B03 is **PARTIAL**: provider-independent secure hosted runtime foundation and local gates pass. Actual hosted PostgreSQL roles/TLS, HTTPS proxy/auth behavior, SMTP delivery and secret operations remain unverified; B03 stays a LAUNCH BLOCKER. [Release 002 report](KILIRIDE_MVP_RELEASE_002_REPORT.md) gives prioritized remaining acceptance and [runtime contract](KILIRIDE_HOSTED_RUNTIME.md) gives configuration. Phase 2F is now committed at 00bcd074119d1bd9fe550244ceef2404082bcffa; prior uncommitted/B01 statements below are historical. The supplied task reports prior CI passed, not independently queried here. New B03 changes are uncommitted and have no hosted CI result. No deployment/publication; overall pilot NO-GO and B05+ scope remain unchanged.
+
+
 > **2026-11-13 subsequent closeout:** MVP release task 001 closes **B02 locally**: explicitly online full audit 15 → 0, runtime 0 → 0; all requested local gates pass. **B01 is ready for review and separately authorized commit/push**, but remains open until the candidate is committed and matching hosted CI passes. No checkpoint, deployment or publication occurred. See [security closeout](KILIRIDE_PHASE2F_SECURITY_CLOSEOUT.md) and [current test evidence](KILIRIDE_TEST_REPORT.md). The original audit below is retained as dated history; B03–B12 and overall pilot NO-GO remain unchanged.
 
 Audit date: **2026-11-13, Africa/Nairobi**. Decision: **NO-GO for real-user pilot launch on the inspected implementation**. This is an evidence-based launch-gap assessment, not a deployment authorization or legal compliance determination.

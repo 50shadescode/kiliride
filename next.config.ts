@@ -1,4 +1,6 @@
 import type { NextConfig } from "next";
+import { PHASE_PRODUCTION_SERVER } from "next/constants";
+import { parseRuntimeEnv } from "./src/server/runtime-config";
 
 const nextConfig: NextConfig = {
   /* config options here */
@@ -20,4 +22,7 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default function configuration(phase: string): NextConfig {
+  if (phase === PHASE_PRODUCTION_SERVER) parseRuntimeEnv(process.env);
+  return nextConfig;
+}

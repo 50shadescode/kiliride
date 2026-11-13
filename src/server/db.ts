@@ -7,7 +7,7 @@ const globalDb = globalThis as unknown as { kilirideDb?: PrismaClient };
 
 export function getDb() {
   if (!globalDb.kilirideDb) {
-    const adapter = new PrismaPg({ connectionString: getEnv().DATABASE_URL, max: 5 });
+    const adapter = new PrismaPg(getEnv().database);
     globalDb.kilirideDb = new PrismaClient({ adapter });
   }
   return globalDb.kilirideDb;

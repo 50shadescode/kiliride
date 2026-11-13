@@ -1,5 +1,12 @@
 # KiliRide architecture: implemented and target design
 
+## B03 hosted runtime foundation (2026-11-13)
+
+Explicit hosted modes now support HTTPS authentication, authenticated TLS SMTP and verified-TLS PostgreSQL options with bounded pooling. Local/test isolation and local migration guards remain. Separate operator migration configuration and a read-only role preflight support distinct runtime/migration identities; actual provider grants and connectivity are unverified. Production configuration loads reject invalid production configuration during server initialization, with instrumentation as defense in depth. The build can run without hosted credentials.
+
+See [runtime contract](KILIRIDE_HOSTED_RUNTIME.md) and [release 002 evidence](KILIRIDE_MVP_RELEASE_002_REPORT.md). Hosted catalogue must remain false; policy register is unchanged. Existing private local image adapter rejects remote DB targets: B05 is still required. No deployment or remote service verification occurred.
+
+
 ## Phase 2F controlled public marketplace (2026-10-31)
 
 The public pages `/`, `/services/vehicles` and `/vehicles/[id]` now share `src/server/fleet/public.ts` with read-only `/api/public/vehicles`, `/api/public/vehicles/[id]` and `/api/public/vehicles/[id]/photos/[photoId]`. `PublicVehicle` is an explicit allowlist DTO: stable public ID, public specifications/description/location, integer KES prices, platform enquiry contact, review label and controlled photograph URLs. Registration, internal vehicle/owner/reviewer IDs, evidence, private notes and storage identifiers never enter this DTO. React escapes public text; evidence URLs are neither exposed nor fetched.

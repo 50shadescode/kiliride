@@ -35,6 +35,8 @@ jobs:
       - run: npm run build
       - name: Exclude private runtime data from build traces
         run: node scripts/check-private-traces.mjs
+      - name: Reject client secret leakage
+        run: node scripts/check-client-secrets.mjs
       # No advisory exceptions are approved. Fail on any severity or registry error.
       - name: Online production dependency audit
         if: ${{ !cancelled() }}

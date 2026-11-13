@@ -5,6 +5,7 @@ if (existsSync('.env')) throw new Error('.env already exists; refusing to overwr
 const password = randomBytes(32).toString('hex');
 const secret = randomBytes(48).toString('hex');
 writeFileSync('.env', [
+  'KILIRIDE_ENV=development',
   `DATABASE_URL=postgresql://kiliride:${password}@127.0.0.1:55432/kiliride_dev`,
   `TEST_DATABASE_URL=postgresql://kiliride:${password}@127.0.0.1:55433/kiliride_test`,
   `POSTGRES_PASSWORD=${password}`,
