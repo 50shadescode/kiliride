@@ -32,6 +32,14 @@ jobs:
       - run: npm run test:fleet
       - name: Rehearse synthetic database and private image recovery
         run: node --conditions=react-server --import tsx scripts/rehearse-image-recovery.ts
+      - name: Retain sanitized recovery failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: recovery-failure-diagnostics-${{ github.run_attempt }}
+          path: backups/release003-recovery-*/failure.json
+          if-no-files-found: ignore
+          retention-days: 7
       - run: npx --no-install playwright install --with-deps chromium
       - run: npm run test:integration
       - run: npm run build

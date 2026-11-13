@@ -1,5 +1,10 @@
 # KiliRide test report
 
+## Release 003 CI recovery correction
+
+Fresh checkout recovery failed because ignored backups/ was absent and nonrecursive run-directory creation raised ENOENT; the old catch hid the exception. The fix creates the parent safely, keeps unique destinations exclusive and adds sanitized stage/subprocess diagnostics without weakening recovery checks. Linux reproduction and helper regression passed; final full local recovery passed (19 tables, 18 triggers, two images, 5,255ms), with 26/26 units, TypeScript and strict lint. Existing DBs and all 494 prior photographs are unchanged. Hosted CI rerun remains pending. See [root-cause evidence and changed files](KILIRIDE_RELEASE_003_CI_DIAGNOSTICS.md).
+
+
 ## MVP release 003: B05 storage (2026-11-13)
 
 Local engineering PASS: 23/23 unit, 32/32 database/service (58.514s), OFF browser/API 16/16, ON 3/3 (39.2s), TypeScript, zero-warning lint, Prisma validate/status/rehearsal, production build, 41 private traces, 25 client artifact scans and zero-finding online full/runtime audits. CI YAML validated; new synthetic recovery gate added, not executed on hosted CI for this candidate.

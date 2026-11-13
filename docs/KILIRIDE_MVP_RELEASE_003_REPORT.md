@@ -1,5 +1,10 @@
 # MVP release 003: B05 durable private vehicle storage
 
+## Release 003 CI recovery correction
+
+Fresh checkout recovery failed because ignored backups/ was absent and nonrecursive run-directory creation raised ENOENT; the old catch hid the exception. The fix creates the parent safely, keeps unique destinations exclusive and adds sanitized stage/subprocess diagnostics without weakening recovery checks. Linux reproduction and helper regression passed; final full local recovery passed (19 tables, 18 triggers, two images, 5,255ms), with 26/26 units, TypeScript and strict lint. Existing DBs and all 494 prior photographs are unchanged. Hosted CI rerun remains pending. See [root-cause evidence and changed files](KILIRIDE_RELEASE_003_CI_DIAGNOSTICS.md).
+
+
 Date: 2026-11-13, Africa/Nairobi.
 
 - **ENGINEERING: PASS** for the implemented foundation and executed local gates.
