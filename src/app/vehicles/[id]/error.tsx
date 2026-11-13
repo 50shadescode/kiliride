@@ -1,0 +1,2 @@
+"use client";
+export default function VehicleError({ reset }: { reset: () => void }) { return <section className="mx-auto my-12 max-w-xl px-4"><h1 className="text-2xl font-bold">Vehicle details are temporarily unavailable</h1><p className="my-4">Please try again to check the current listing.</p><button onClick={reset} className="rounded-xl bg-emerald-600 px-5 py-3 text-white">Try again</button></section>; }

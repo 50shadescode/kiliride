@@ -9,7 +9,7 @@ import { approvalSchema } from "@/lib/validation/vehicle-review";
 import { assessedCompliance } from "@/lib/validation/vehicle-compliance";
 import { readVerifiedImage } from "../images/read";
 import { imageStorage } from "../images/storage";
-import { assertLocalDatabase } from "../../../scripts/local-safety.mjs";
+import { activeVerificationPolicy } from "./policy";
 
 const idSchema = z.string().uuid();
 const reasonSchema = z.string().trim().min(10).max(1000);
@@ -95,8 +95,7 @@ export async function transitionVehicleListing(headers: Headers, input: unknown)
       const { policyVersion } = data.approval;
       await tx.$queryRaw`SELECT version FROM "VehicleVerificationPolicy" WHERE version = ${policyVersion} FOR SHARE`;
       const policy = await tx.vehicleVerificationPolicy.findUnique({ where: { version: policyVersion } });
-      if (!policy?.enabled || policy.approvedAt > new Date()) throw new FleetError("POLICY_REQUIRED");
-      if (policy.testOnly) assertLocalDatabase(process.env.DATABASE_URL, true);
+      if (!policy || !activeVerificationPolicy(policy)) throw new FleetError("POLICY_REQUIRED");
       compliance = assessedCompliance(policy.requirements, data.approval.compliance);
       if (!compliance) throw new FleetError("EVIDENCE_REQUIRED");
       const registration = await tx.vehicleRegistration.findUnique({ where: { vehicleId: vehicle.id } });

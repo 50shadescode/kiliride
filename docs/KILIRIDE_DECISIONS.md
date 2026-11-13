@@ -1,5 +1,17 @@
 # KiliRide decision register
 
+## Phase 2F authorization and cutover controls (2026-10-31)
+
+- APPROVED SCOPE: user-authorized Task 003F only, controlled public query/UI/photo access, compatibility, tests and documentation. Initial branch `feature/phase2-fleet-management`, completed 2E commit `4571bdc`; the only initial untracked file was the supplied 003F prompt. No commit, push, production activation, deployment or Phase 2G.
+- IMPLEMENTED: default-OFF server flag `KILIRIDE_DB_CATALOGUE`; ON only for isolated local development/test and rejected with NODE_ENV=production. OFF uses a truthful legacy projection; ON has no static fallback. Browser input cannot select the data source.
+- STILL NOT APPROVED: KILIRIDE-FLEET-VERIFY-001 / 0.1-DRAFT. Approver/effective date remain unset. A shared, deliberately empty real-policy authorization register prevents database toggles alone from enabling real approval/publication. Test-only policy fixtures require port 55433/kiliride_test; no real policy record is created.
+- IMPLEMENTED: public visibility requires current approval, authorized policy, review/compliance snapshot, independent reviewer, resolved ownership review, matching event/audit, valid public metadata and ACTIVE photographs. Current HOST role/verified-account checks are a conservative publication restriction, not a legal ownership claim.
+- IMPLEMENTED: uncached public reads and controlled no-store image delivery; optimizer access to protected routes denied. 500 candidate/100 enabled-policy preview limits fail closed; public page size max 24. These technical bounds are not subscription entitlements.
+- PRESERVED: legacy IDs/routes, specifications, integer prices, image references and WhatsApp contact/arithmetic. Removed unsupported legacy Verified/availability claims. No real photo assets existed at the referenced legacy paths in this checkout; missing-photo UI is honest. DB inventory has no approved fee policy, so additional charges remain to-confirm.
+- BLOCKED FOR PRODUCTION: formal policy authorization, approved applicable Kenyan compliance matrix and qualified guidance, real owners/evidence/photos/reviews, fee/rental terms, hosted private storage/privacy/retention/restore, capacity/operational review and explicit cutover authorization. No legal determination is asserted by this engineering milestone.
+
+Earlier scope/stop statements below are historical checkpoints.
+
 ## Phase 2E scope and provisional policy direction (2026-10-31)
 
 - APPROVED scope: administrator verification dashboard/decision workflow, private photo review, immutable evidence/audit/history, host feedback, additive migrations and security/regression checks. Stop after 2E; no commit, push, deployment or public catalogue cutover.

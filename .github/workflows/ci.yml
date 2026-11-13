@@ -35,7 +35,13 @@ jobs:
       - run: npm run build
       - name: Exclude private runtime data from build traces
         run: node scripts/check-private-traces.mjs
-      - run: npm audit --omit=dev --audit-level=high
+      # No advisory exceptions are approved. Fail on any severity or registry error.
+      - name: Online production dependency audit
+        if: ${{ !cancelled() }}
+        run: npm audit --offline=false --omit=dev --audit-level=low --fetch-retries=0 --fetch-timeout=20000
+      - name: Online full dependency audit (zero accepted advisories)
+        if: ${{ !cancelled() }}
+        run: npm audit --offline=false --audit-level=low --fetch-retries=0 --fetch-timeout=20000
       - name: Stop isolated services without deleting volumes
         if: always()
         run: docker compose stop

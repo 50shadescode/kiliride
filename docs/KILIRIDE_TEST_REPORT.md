@@ -1,5 +1,73 @@
 # KiliRide test report
 
+## MVP release task 001 — Phase 2F security closeout (2026-11-13)
+
+**PASS for all requested local quality gates. B02 closed; B01 checkpoint preparation PASS, actual commit/push and hosted CI pending.** Branch `feature/phase2-fleet-management`, HEAD `4571bdc` unchanged. Node v24.14.1, npm 11.11.0. See [security closeout](KILIRIDE_PHASE2F_SECURITY_CLOSEOUT.md) for advisories, dependency paths, compatibility review and the full file inventory. No waiver, deployment, publication or real policy activation.
+
+| Executed command/check | Final observed result |
+|---|---|
+| `npm.cmd run typecheck` | PASS, `tsc --noEmit --incremental false`; rerun after final dependency/test change. |
+| `npm.cmd run lint -- --max-warnings=0` | PASS, zero warnings; rerun with final minimatch 11.0.8 override. |
+| `npm.cmd run test:unit` | PASS **15/15**, 1.77s; includes parser dependency resolution, matching semantics and timed hostile-pattern rejection. |
+| `node scripts/run.mjs test-fleet` | PASS **29/29**, 36.93s; real isolated PostgreSQL, ownership/verification/concurrency/images/public eligibility. |
+| `npm.cmd run test:integration` | PASS **16/16 OFF** (3.2m), then **3/3 ON** (30.2s). Real auth/Mailpit/MFA, host/admin, mobile/keyboard, prices/WhatsApp, DTO/photograph security and warmed-URL withdrawal. No WhatsApp message sent. |
+| `node node_modules/prisma/build/index.js validate` | PASS, unchanged Prisma 7.10.1 and schema. |
+| `node scripts/run.mjs status-test`; `node node_modules/prisma/build/index.js migrate status` | PASS: six migrations, both existing isolated databases current; no migration applied to either existing DB. |
+| `node scripts/rehearse-migrations.mjs` | PASS: fresh `kiliride_rehearsal_c13815e1545e48e9b751e633af64d6ab` on test port 55433; six migrations, repeat no-op, checksum/history/status, 19 tables/18 triggers, CUSTOMER assignment and test-policy isolation. Database retained. |
+| `npm.cmd run build` | PASS, Next.js 16.4.3, 13 static pages and dynamic catalogue/detail/API routes. |
+| `node scripts/check-private-traces.mjs` | PASS: **40 traces** exclude private image storage, backups and environment files. |
+| `npm.cmd audit --offline=false --audit-level=low --json --fetch-retries=0 --fetch-timeout=20000` | PASS exit 0, **zero findings**. Before remediation: 15 (3 high/11 moderate/1 low). |
+| `npm.cmd audit --offline=false --omit=dev --audit-level=low --json --fetch-retries=0 --fetch-timeout=20000` | PASS exit 0, **zero findings** before and after. |
+| Workflow YAML parse and audit-step assertions using existing `js-yaml` | PASS: both independently reported online zero-advisory gates; no new parser dependency installed. Hosted workflow not run. |
+| `git diff --check`; final Git status/history/index inspection | PASS, LF/CRLF notices only. HEAD remains 4571bdc on feature/phase2-fleet-management; all changes uncommitted, none staged. |
+| Lock comparison to task-entry copy | PASS: all non-dev package entries unchanged. Removed 250 unused entries; added nonrecursive-glob-match 1.1.0; targeted minimatch/brace-expansion changes only. |
+| `node backups/release001-preservation.mjs --verify` | Development all 19 tables exactly unchanged. All 299 pre-existing image files unchanged. Test persistent hashes match except documented note-131c legacy replay below; seven RateLimit rows changed, zero prior Session/Verification rows changed. |
+| `node backups/verify-image-consistency.mjs` | PASS: **341 ACTIVE test objects**, exact file/reference/size/SHA-256 match; no orphans or pending cleanup. |
+| `node backups/verify-phase2e.mjs` | PASS both targets: no real policies, two unassigned legacy DRAFTs with original prices and no photos/reviews/decisions. Development zero policies; 50 retained synthetic test policies. |
+
+Preservation caveat: the initial all-existing-row hash assertion failed for one test Vehicle. Inspection of `tests/database/fleet.test.ts:153` identifies the longstanding replay test: it changes/restores the test Note description and increments revision in both operations, also updating its timestamp. The verifier now explicitly reports that row rather than claiming exact test DB immutability; other pre-existing persistent row hashes and legacy business invariants pass. The fingerprint baseline stores hashes, not original field values, so it cannot independently prove that only those two fields changed in that one row. The test's successful restore path and read-only legacy invariants are the supporting evidence. No attempt was made to reset revision/history or hide this observation. Tests add synthetic records and retain history; development remains byte-equivalent at row-hash level.
+
+Failures and corrections: sandbox unit subprocesses and Prisma engine failed EPERM, then passed authorized retries. Docker initially was stopped; the installed application and existing containers were started without replacing volumes. Build initially could not fetch the existing Google font inside the sandbox; authorized retry passed. The new minimatch test on 11.0.1 timed out (14/15 units passed); newer 11.0.8 bounded and rejected the input, initially producing a RangeError (14/15) because the test expected normal return. Assertion was corrected to require that specific RangeError; same hostile input and five-second timeout retained, final 15/15. No old functional/security assertion was weakened. Diagnostic Node parsing of PowerShell UTF-16 audit JSON failed; PowerShell parsed the baseline correctly. Optional workflow-parser probe found `yaml` absent; existing `js-yaml` parsed successfully. A subprocess-based source fingerprint probe was blocked EPERM before recording a baseline; no source byte-preservation claim relies on that failed probe.
+
+Non-fatal browser output: existing NO_COLOR/FORCE_COLOR, smooth-scroll warning and destination-stream errors during navigation; all final browser assertions passed. `npm ls --all --omit=optional --depth=0` exited 0 with all declared direct versions present, but reported several local optional WASM support packages as extraneous; this is not a clean-room installation claim. The exact lockfile will still need the hosted `npm ci` checkpoint. No package cleanup beyond the targeted npm resolution was performed.
+
+No new full manual screen-reader/physical-device session, production infrastructure check, live charge, combined restore drill or hosted CI run was performed. These are outside this closeout and remain separate MVP gates. Existing 2F production guard/default-OFF and empty authorized-real-policy register remain unchanged. Ready for **review and separately authorized commit/push**, not release activation.
+
+## Phase 2F controlled public marketplace (2026-10-31)
+
+**ENGINEERING STATUS: PARTIAL (functional/security regressions PASS; full dependency audit non-clean). BUSINESS POLICY READINESS: BLOCKED. PRODUCTION READINESS: BLOCKED.** Complete implementation evidence, file list, configuration/rollback and manual steps: [Phase 2 report](KILIRIDE_PHASE2_REPORT.md). Branch `feature/phase2-fleet-management`, 2E checkpoint `4571bdc`. No real policy activation, production cutover, commit, push or Phase 2G.
+
+| Executed command/check | Final outcome |
+|---|---|
+| `npm.cmd run test:unit` | PASS 14/14, 2.05s |
+| `node scripts/run.mjs test-fleet` | PASS 29/29, 33.55s; real isolated PostgreSQL services |
+| `npm.cmd run test:integration` | PASS 16/16 legacy-mode Chromium/API tests (3.8m), then 3/3 database-preview tests (36.4s) |
+| `npm.cmd run typecheck` | PASS, no emit/incremental false |
+| `npm.cmd run lint -- --max-warnings=0` | PASS, zero warnings |
+| Prisma validate | PASS, unchanged Prisma 7.10.1/schema |
+| `node scripts/run.mjs status-test`; Prisma migrate status | PASS, six migrations up to date on test 55433/kiliride_test and development 55432/kiliride_dev |
+| `node scripts/rehearse-migrations.mjs` | PASS: fresh `kiliride_rehearsal_76a00fbdf08e488389f3f7a9f6e3c0b5` on 55433; six migrations, repeat no-op/history/checksums/status, 19 tables, 18 triggers, CUSTOMER and test-policy isolation probes |
+| `npm.cmd run build` | PASS, production build; 13 static pages; public catalogue/detail/API routes dynamic |
+| `node scripts/check-private-traces.mjs` | PASS, 40 traces exclude private image storage, backups and environment files |
+| Development fingerprint comparisons | PASS, original 16-table and 18-table baselines unchanged |
+| Final legacy/policy checks | PASS on both targets: two unassigned legacy DRAFTs, original prices, no photos/reviews/decisions/real policy; development policy table empty |
+| Final storage consistency | PASS, 299 ACTIVE test objects match references/file inventory/lengths/SHA-256; no orphans or pending cleanup |
+| Online `npm.cmd audit --omit=dev --json` | PASS, exit 0, zero vulnerabilities |
+| Online `npm.cmd audit --json` | NON-CLEAN, exit 1: **23** findings (3 high, 19 moderate, 1 low); unchanged dependency versions/lockfile |
+| `git diff --check` | PASS |
+
+New tests: `tests/unit/public-catalogue.test.ts`, `tests/database/catalogue.test.ts`, `tests/integration/catalogue-off.spec.ts`, `tests/catalogue/public.spec.ts`; guarded fixtures in `tests/helpers/catalogue-fixtures.ts`. Positive protocol approvals/photographs are explicitly synthetic, created only in kiliride_test on port 55433 and test storage. The default Playwright server forces flag OFF on localhost:3100; the separate preview server forces ON on localhost:3101 and refuses server reuse. The package integration script executes them sequentially, including through the existing CI entry point.
+
+Coverage proves eligible APPROVED visibility; DRAFT/PENDING_REVIEW/REJECTED/SUSPENDED/unassigned-legacy exclusion; approval without matching audit exclusion; draft/non-authorized/disabled-policy blocking; verified-owner association requirement; explicit safe DTOs; internal/unknown public IDs denied; cross-vehicle/public-private photograph boundaries; no optimizer bypass; server flag not overridable from cookies/headers/query; strict bounded/duplicate query handling; search/category/location/seats/sort/pagination/empty results; same warmed detail/image/list URLs withdrawn after committed suspension and policy deactivation; no static fallback. API image headers are no-store and WebP, and controlled photos are not persistent optimizer assets.
+
+UI checks pass at 375px/1280px with no horizontal overflow on exercised catalogue/detail views, accessible labels/keyboard focus, pagination/filter interactions, actual synthetic stored-image delivery and honest missing legacy-image fallback. Original URLs and legacy 2500/3500/500 prices are preserved. Three-day legacy WhatsApp KES 11,000 regression passes; DB fixture has no invented fee and gives KES 10,503 base for three days at 3501. Messages identify public vehicle reference and state enquiry only; no private registration/booking confirmation. Existing full authentication/verification/recovery/MFA/recovery-code replay, ADMIN access/evidence/history/races, HOST management and image security/consistency suites all pass.
+
+Failures corrected before final runs: CJS top-level-await fixture entry point; overlong synthetic registration (fixed fixture, retained validator); readonly NODE_ENV cleanup typing; mistaken equal timestamps across Prisma transaction inserts (now ordered and still matched to current revision/reviewer/reason/audit). Intermediate database runs passed 24/29 then 27/29; final passed 29/29. Build and subprocess tests encountered sandbox EPERM and passed with authorized retries. Expected missing-image/optimizer denials and existing smooth-scroll/color warnings do not represent failed assertions.
+
+The online audit supersedes the sandbox's empty result and the historical 2E five-finding result. Current findings are in development tooling chains (ESLint/minimatch, shadcn/transitive Zod/brace-expansion, Hono node server, ts-morph). No dependency changes, major-version forced fix or Prisma upgrade was made. Resolve/review these compatible maintenance changes before declaring the complete engineering security gate clean. Raw local outputs are retained in ignored `backups/phase2f-*.log` and audit JSON, without test-session dumps.
+
+Not performed: new hosted GitHub Actions run, production activation/deployment, formal policy/legal/insurance approval, real owner/vehicle review, full physical-device/screen-reader audit, production load testing or new coordinated DB/image restore drill. The development DB and real policy remain unchanged. Stop after 2F; all sections below are historical checkpoints.
+
 ## Phase 2E administrator verification (2026-10-31)
 
 **Engineering acceptance: PASS locally. Business-policy readiness: BLOCKED; overall real-operation readiness: PARTIAL.** Formal policy approval and Kenyan regulatory/legal/insurance determinations remain outstanding by explicit product-owner direction. The recorded policy is KILIRIDE-FLEET-VERIFY-001 / 0.1-DRAFT, unapproved with no approver/effective date. No real approved policy or vehicle approval was created. Full commands, file evidence, backups and manual acceptance are in [Phase 2 report](KILIRIDE_PHASE2_REPORT.md); policy in [draft specification](policies/KILIRIDE_VEHICLE_VERIFICATION_V0_1_DRAFT.md).

@@ -9,7 +9,7 @@
 
 import { useState } from "react";
 
-import type { Vehicle } from "@/lib/types/vehicle";
+import type { PublicVehicle } from "@/lib/types/public-vehicle";
 
 import {
   calculateRentalDays,
@@ -22,7 +22,7 @@ import { Button } from "@/components/ui/button";
 import { MessageCircle } from "lucide-react";
 
 interface ReservationFormProps {
-  vehicle: Vehicle;
+  vehicle: PublicVehicle;
 }
 
 export function ReservationForm({
@@ -75,7 +75,7 @@ export function ReservationForm({
   const estimatedTotal =
     calculateEstimatedTotal(
       estimatedRentalFee,
-      vehicle.reservationFee
+      (vehicle.reservationFee ?? 0)
     );
 
   /**
@@ -83,10 +83,10 @@ export function ReservationForm({
    */
   function generateReservationWhatsappLink() {
     const message = `
-KiliRide Reservation Request
+KiliRide Vehicle Enquiry
 
 Vehicle: ${vehicle.name}
-Plate: ${vehicle.plate}
+Vehicle reference: ${vehicle.id}
 
 Customer Name:
 ${customerName}
@@ -109,13 +109,13 @@ ${rentalDays} day(s)
 Estimated Rental Fee:
 KES ${estimatedRentalFee.toLocaleString()}
 
-Estimated Total:
+${vehicle.reservationFee === null ? "Estimated base rental (other charges to confirm)" : "Estimated Total"}:
 KES ${estimatedTotal.toLocaleString()}
 
 Additional Notes:
 ${notes || "None"}
 
-Reservation becomes active after manager confirmation.
+This is an enquiry only. Availability and rental terms require manager confirmation.
 `;
 
     return `https://wa.me/${
@@ -128,12 +128,12 @@ Reservation becomes active after manager confirmation.
       {/* Header */}
       <div className="mb-8">
         <h2 className="text-3xl font-black text-slate-900">
-          Reserve This Vehicle
+          Enquire About This Vehicle
         </h2>
 
         <p className="mt-2 text-slate-500">
           Complete the details below to begin
-          your reservation request.
+          your vehicle enquiry.
         </p>
       </div>
 
@@ -141,13 +141,13 @@ Reservation becomes active after manager confirmation.
       <div className="grid gap-6">
         {/* Customer Name */}
         <div>
-          <label className="text-sm font-semibold text-slate-700">
+          <label htmlFor="enquiry-name" className="text-sm font-semibold text-slate-700">
             Full Name
           </label>
 
           <input
             type="text"
-            placeholder="Enter your full name"
+            id="enquiry-name" placeholder="Enter your full name"
             value={customerName}
             onChange={(e) =>
               setCustomerName(e.target.value)
@@ -158,13 +158,13 @@ Reservation becomes active after manager confirmation.
 
         {/* Phone Number */}
         <div>
-          <label className="text-sm font-semibold text-slate-700">
+          <label htmlFor="enquiry-phone" className="text-sm font-semibold text-slate-700">
             Phone Number
           </label>
 
           <input
             type="text"
-            placeholder="07XXXXXXXX"
+            id="enquiry-phone" placeholder="07XXXXXXXX"
             value={phoneNumber}
             onChange={(e) =>
               setPhoneNumber(e.target.value)
@@ -177,12 +177,12 @@ Reservation becomes active after manager confirmation.
         <div className="grid md:grid-cols-2 gap-6">
           {/* Pickup Date */}
           <div>
-            <label className="text-sm font-semibold text-slate-700">
+            <label htmlFor="enquiry-pickup" className="text-sm font-semibold text-slate-700">
               Pickup Date
             </label>
 
             <input
-              type="date"
+              id="enquiry-pickup" type="date"
               value={pickupDate}
               onChange={(e) =>
                 setPickupDate(e.target.value)
@@ -193,12 +193,12 @@ Reservation becomes active after manager confirmation.
 
           {/* Return Date */}
           <div>
-            <label className="text-sm font-semibold text-slate-700">
+            <label htmlFor="enquiry-return" className="text-sm font-semibold text-slate-700">
               Return Date
             </label>
 
             <input
-              type="date"
+              id="enquiry-return" type="date"
               value={returnDate}
               onChange={(e) =>
                 setReturnDate(e.target.value)
@@ -210,11 +210,12 @@ Reservation becomes active after manager confirmation.
 
         {/* Pickup Method */}
         <div>
-          <label className="text-sm font-semibold text-slate-700">
+          <label htmlFor="enquiry-method" className="text-sm font-semibold text-slate-700">
             Pickup Method
           </label>
 
           <select
+            id="enquiry-method"
             value={pickupMethod}
             onChange={(e) =>
               setPickupMethod(e.target.value)
@@ -233,11 +234,12 @@ Reservation becomes active after manager confirmation.
 
         {/* Additional Notes */}
         <div>
-          <label className="text-sm font-semibold text-slate-700">
+          <label htmlFor="enquiry-notes" className="text-sm font-semibold text-slate-700">
             Additional Notes
           </label>
 
           <textarea
+            id="enquiry-notes"
             rows={5}
             placeholder="Special requests or booking notes..."
             value={notes}
@@ -248,10 +250,10 @@ Reservation becomes active after manager confirmation.
           />
         </div>
 
-        {/* Booking Summary */}
+        {/* Enquiry Estimate */}
         <div className="rounded-2xl bg-slate-50 p-6">
           <h3 className="text-xl font-black text-slate-900">
-            Booking Summary
+            Enquiry Estimate
           </h3>
 
           <div className="mt-5 space-y-4">
@@ -282,14 +284,13 @@ Reservation becomes active after manager confirmation.
               </span>
 
               <span className="font-bold text-slate-900">
-                KES{" "}
-                {vehicle.reservationFee.toLocaleString()}
+                {vehicle.reservationFee === null ? "To confirm" : `KES ${vehicle.reservationFee.toLocaleString()}`}
               </span>
             </div>
 
             <div className="border-t border-slate-200 pt-4 flex items-center justify-between">
               <span className="text-lg font-bold text-slate-900">
-                Estimated Total
+                {vehicle.reservationFee === null ? "Estimated base rental" : "Estimated Total"}
               </span>
 
               <span className="text-2xl font-black text-emerald-600">
@@ -300,8 +301,8 @@ Reservation becomes active after manager confirmation.
           </div>
 
           <p className="mt-5 text-sm text-slate-500">
-            Reservation becomes active
-            after manager confirmation.
+            This enquiry is not a confirmed reservation; terms require
+            manager confirmation.
           </p>
 
           <p className="mt-2 text-sm text-slate-500">

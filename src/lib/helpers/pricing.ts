@@ -28,7 +28,7 @@ export function calculateRentalDays(
  * Calculates estimated rental fee using aligned schema parameters
  */
 export function calculateEstimatedRentalFee(
-  vehicle: Vehicle,
+  vehicle: Pick<Vehicle, "baseFullDay">,
   rentalDays: number
 ) {
   if (rentalDays <= 0) {

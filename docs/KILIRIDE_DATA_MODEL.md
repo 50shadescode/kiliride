@@ -1,5 +1,15 @@
 # KiliRide domain model and invariants
 
+## Phase 2F public read model (2026-10-31)
+
+No Prisma/schema/migration change. Six existing migrations retain 19 public tables including migration history and 18 application triggers. Public reads use the existing Vehicle, ownership, approval review, decision, policy/compliance snapshot, listing event, audit and photograph journal. Current approval revision must equal reviewed revision + 1; a matching post-decision event/audit is mandatory. Approval status alone cannot publish. Suspension, disabled policy, lost verified HOST association, missing approval evidence or non-ACTIVE photographs exclude the record. Unassigned legacy DRAFTs are never database inventory.
+
+`src/lib/types/public-vehicle.ts` explicitly projects publicId as `id`, public make/model/category/specifications/location/description, KES half/full-day prices, platform manager contact, review label and controlled photo URLs. Internal UUID vehicle lookup, registration, owner identity, review reasons/evidence and object keys are absent. Photograph UUIDs are route identifiers, never storage capabilities; each read rechecks publication and vehicle association. Supporting documents stay private.
+
+The static compatibility projection preserves `vitz-142s`, `note-131c`, KES 2500/3500 and existing KES 500 fee. No new DB fee column or fee policy is invented: DB inventory has a nullable public fee (`null` means to-confirm), and displayed calculations are enquiry estimates. Legacy data and identifiers are unchanged. Future legitimate ownership/review can retain the existing publicId without recreating vehicle URLs; no such assignment/approval is performed here.
+
+Existing indexes: Vehicle publicId unique and (status, createdAt); ownership ownerId; review/event/decision vehicleId+createdAt; AuditLog subjectId+createdAt; photo vehicle/order constraints and image journal state. These support the bounded 500-candidate local preview, with deterministic post-eligibility filtering/pagination. Capacity overflow fails closed. More extensive indexing/query-plan work requires measured production scale, not speculative migrations. Test fixture writes remain on 55433/kiliride_test and test image storage. Development fingerprints and legacy states are checked separately; see the Phase 2 report.
+
 ## Phase 2E administrator verification (2026-10-31)
 
 Additive migrations `202610300004_vehicle_verification` and `202610300005_verification_requirements` add two tables and policy matrix JSON. Six migrations now produce 19 public tables including Prisma history and 18 application triggers. No historical review was backfilled with invented evidence.

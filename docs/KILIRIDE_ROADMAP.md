@@ -1,5 +1,17 @@
 # KiliRide — Commercial Product Roadmap
 
+## Phase 2F controlled catalogue status (2026-10-31)
+
+IMPLEMENTED under Task 003F: shared public inventory eligibility/DTO boundary, default-OFF server flag, isolated database preview, compatible truthful legacy catalogue, filtered/sorted/paginated listings, details, controlled photos, uncached withdrawal and enquiry-only WhatsApp. The completed 2E engineering checkpoint is commit `4571bdc` on `feature/phase2-fleet-management`; 2F changes remain uncommitted for review. No schema migration or production cutover.
+
+Real approvals/publication remain BLOCKED by the deliberately unapproved draft policy and unresolved compliance matrix. Synthetic positive tests run only on 55433/kiliride_test. Detailed final checks and engineering verdict are recorded in [Phase 2 report](KILIRIDE_PHASE2_REPORT.md) and [test report](KILIRIDE_TEST_REPORT.md). Production requires formal policy/evidence, operational/storage/privacy/capacity gates and explicit authorization; local engineering completion is not launch readiness.
+
+STOP after 2F. No Phase 2G, payments, booking transactions, subscriptions, drivers, commit, push or deployment. Earlier stop points below describe historical milestones, not current authorization.
+
+## Phase 2E completed checkpoint (2026-10-31)
+
+IMPLEMENTED and committed: MFA-protected administrator queue/detail/decision workflow; five-check verification, configurable compliance matrix, immutable evidence/history, atomic revision-checked decisions, private photographs and owner feedback. Local 13 unit, 24 database and 15 browser/API checks passed at that checkpoint. The current user reports GitHub Actions passed; this 2F task does not claim a new hosted CI run. Business policy remains draft/unapproved. See the dated 2E report for evidence.
+
 ## Phase 2D local status (2026-10-30)
 
 IMPLEMENTED under explicit 2D authorization: private local storage adapter, validated/re-encoded multiple photographs, owner-only reads/mutations, cover/order, secure deletion/replacement, responsive host controls and durable cleanup journal/reconciler. Public catalogue and earlier identity/host behavior remain unchanged. All new photographs stay private; no admin approval UI or public DB cutover.

@@ -1,8 +1,11 @@
-import { KILIFI_FLEET } from "@/lib/fleet";
-import { CarCard } from "@/components/cars/CarCard";
+import { Suspense } from "react";
+import Link from "next/link";
+import { Catalogue } from "@/components/cars/Catalogue";
 import { Button } from "@/components/ui/button";
 import { MapPin, Calendar, Car } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 export default function Home() {
   return (
     <div className="flex flex-col min-h-screen">
@@ -18,18 +21,18 @@ export default function Home() {
               Explore Kilifi with confidence. Premium car rental for your
               coastal adventure and beyond.
             </p>
-            <Button
+            <Button asChild
               size="lg"
               className="bg-emerald-600 hover:bg-emerald-700 rounded-2xl px-10 py-8 text-xl font-bold shadow-lg shadow-emerald-200/50 transition-all hover:scale-105"
             >
-              Browse Vehicles
+              <Link href="/services/vehicles" prefetch={false}>Browse Vehicles</Link>
             </Button>
           </div>
 
           {/* 2. SEARCH WIDGET */}
           <div className="bg-white p-10 rounded-[2.5rem] shadow-2xl shadow-slate-200/60 border border-slate-100 space-y-6">
             <h3 className="text-2xl font-bold text-slate-900 mb-2">
-              Book a Ride
+              Plan your enquiry
             </h3>
             <div className="space-y-4">
               <div className="flex items-center gap-4 p-5 bg-slate-50 rounded-2xl border border-slate-100">
@@ -63,19 +66,15 @@ export default function Home() {
           <div className="flex justify-between items-end mb-16">
             <div>
               <h2 className="text-4xl font-black text-slate-900">
-                Available in Kilifi
+                Explore vehicles in Kilifi
               </h2>
               <p className="text-slate-500 text-lg mt-2 font-medium">
-                Verified vehicles, ready for pickup.
+                Browse details and enquire about availability.
               </p>
             </div>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-10">
-            {KILIFI_FLEET.map((vehicle) => (
-              <CarCard key={vehicle.id} vehicle={vehicle} />
-            ))}
-          </div>
+          <Suspense fallback={<p role="status">Loading vehicles…</p>}><Catalogue /></Suspense>
         </div>
       </section>
     </div>

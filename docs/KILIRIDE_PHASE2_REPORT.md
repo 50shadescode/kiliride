@@ -1,4 +1,103 @@
-# Phase 2 report: through Milestone 2E
+# Phase 2 report: through Milestone 2F
+
+## MVP release task 001 — security closeout (2026-11-13)
+
+**PASS for local Phase 2F security closeout and checkpoint preparation. B02 CLOSED at this audit; B01 locally ready for review/commit/push, with authorization and matching hosted CI still pending. Production/business-policy readiness remains BLOCKED.** No commit, push, deployment, real approval or production publication occurred. This update supersedes the old dependency counts/local engineering verdict below, not the outstanding business/production gates.
+
+Full investigation, advisory IDs, exploitability, initial worktree inventory, compatibility review and changed-file list: [security closeout](KILIRIDE_PHASE2F_SECURITY_CLOSEOUT.md). Exact checks, failures and preservation limits: [test report](KILIRIDE_TEST_REPORT.md).
+
+- Confirmed `feature/phase2-fleet-management`, HEAD `4571bdc222ca01e1766eab370185be821bb72090` (2E); preserved all pending 2F work.
+- Node 24.14.1/npm 11.11.0. Explicitly online full audit **15 → 0** findings (before: 3 high, 11 moderate, 1 low); production **0 → 0**. No accepted exceptions or hidden findings.
+- Removed unused shadcn CLI while copying its 3.8.5 stylesheet and MIT notice locally, preserving styling. Patched brace-expansion 1.1.12 → 1.1.22 and 5.0.12 → 5.0.13. Reviewed scoped TypeScript-ESLint minimatch override 10.2.6 → 11.0.8; no top-level major upgrade/downgrade, forced audit fix or lockfile deletion. Runtime lock entries unchanged.
+- Added a parser-call compatibility/hostile-pattern test. Rejected initial 11.0.1 after timeout; 11.0.8 safely rejects the same hostile input. All **15 unit / 29 database / 16 OFF / 3 ON** tests pass; types, strict lint, schema/status, fresh migration rehearsal, build and 40 private traces pass.
+- CI now runs both explicit online audits, rejects all severities and registry failures, and does not suppress the second audit when the first fails. Hosted execution remains pending a future authorized checkpoint.
+- Development's 19 table fingerprints and all 299 pre-existing image bytes preserved. Existing test legacy replay deliberately increments note-131c revision twice while restoring its description; seven pre-existing RateLimit rows changed. Other pre-existing persistent records matched hashes. Final 341 ACTIVE synthetic objects have consistent references/size/hash, no orphan/pending cleanup. No real policy; legacy listings remain unassigned DRAFTs with original prices and no reviews/photos.
+
+Only dependency/tooling, stylesheet-source and reporting changes in this closeout. Schema/migrations, catalogue guards/eligibility, private image behavior, stable IDs/prices and enquiry-only WhatsApp remain intact. Fresh disposable rehearsal database is retained; no existing database migration/reset or restore occurred. **STOP before commit/push/deployment/activation or another milestone.**
+
+## Milestone 2F acceptance (2026-10-31)
+
+**ENGINEERING STATUS: PARTIAL. BUSINESS POLICY READINESS: BLOCKED. PRODUCTION READINESS: BLOCKED.** The authorized 2F implementation and functional/security regressions pass locally. The full dependency security gate is non-clean: the current online audit reports 23 development-tool findings (3 high, 19 moderate, 1 low), while runtime dependencies have zero reported vulnerabilities. These findings affect the unchanged dependency versions/lockfile; they are not resolved or waived by this milestone. No real-policy approval, publication or production cutover has occurred.
+
+Authority: [Task 003F](prompts/CODEX_PROMPT_003F.md). Root AGENTS.md and the complete task were read; architecture, data model, decisions, roadmap, prior prompts/reports and draft policy were inspected with the actual implementation. Confirmed branch **feature/phase2-fleet-management**, completed 2E checkpoint **4571bdc feat: implement secure admin vehicle verification**. Initial working tree contained only the user-supplied untracked 003F prompt; no unexplained modifications. This section supersedes historical scope/stop statements below.
+
+### Implemented features and code evidence
+
+| Status | Capability | Evidence |
+|---|---|---|
+| IMPLEMENTED | Shared server publication boundary; explicit public DTO; current status, owner, policy, evidence, compliance, event/audit and photo eligibility | `src/server/fleet/public.ts`, `policy.ts`, `src/lib/types/public-vehicle.ts` |
+| IMPLEMENTED | Server-controlled default-OFF flag, guarded local/test ON preview, production denial, no browser override or static fallback | `src/server/fleet/catalogue-config.ts`, `.env.example` |
+| IMPLEMENTED | Public list/detail/photo API using the same service as server-rendered pages; generic errors, bounded input and no-store delivery | `src/server/fleet/public-http.ts`, `src/app/api/public/vehicles/route.ts`, `[id]/route.ts`, `[id]/photos/[photoId]/route.ts` |
+| IMPLEMENTED | Catalogue cards/details, make/model/category/location/seats filters, stable sorting, pagination, gallery, loading/empty/error states and accessible mobile controls | `src/components/cars/{Catalogue,CatalogueFilters,CarCard,PublicPhoto}.tsx`, `src/app/{page,services/vehicles/page,vehicles/[id]/page,vehicles/[id]/error}.tsx` |
+| IMPLEMENTED | Compatible public IDs/specifications/prices/image references and enquiry-only WhatsApp; truthful legacy labels | Public DTO mapping, unchanged `src/lib/fleet.ts`, `src/components/bookings/ReservationForm.tsx`, `src/lib/helpers/pricing.ts` |
+| IMPLEMENTED | Uncached withdrawal and protected photo bytes; optimizer cannot cache API images | Dynamic pages, public HTTP headers, `publicVehiclePhoto`, existing `images/read.ts`, `next.config.ts` |
+| IMPLEMENTED | Both flag modes in automated tests/CI entry point; isolated synthetic positive approval fixtures | `scripts/run.mjs`, `package.json`, `playwright.catalogue.config.ts`, new tests listed below |
+| BLOCKED | Real approval/publication, formal policy and production activation | Empty real-policy authorization register; unchanged unapproved `KILIRIDE-FLEET-VERIFY-001 / 0.1-DRAFT`; production flag guard |
+
+Database eligibility requires APPROVED status, a non-null current verified HOST association with non-UNASSIGNED origin, a matching independent approval for revision-1, active authorized policy, all five evidence confirmations, resolved applicable compliance requirements and matching immutable snapshot, valid public metadata, ACTIVE gallery/cover, and matching ordered event/audit. Account association alone is not proof of ownership. Current revision and reviewer/reason checks tie evidence to this approval; insert timestamps are ordered rather than incorrectly assumed identical. A specially constructed APPROVED test row with checklist/event but no audit is excluded.
+
+The DTO excludes internal vehicle/owner/reviewer IDs, registrations, evidence, reasons/private notes, storage paths/keys, hashes and secrets. Photos expose only controlled URL identifiers and generated public alt text. Image access checks eligibility and vehicle/photo association, validates stored length/SHA-256, then rechecks eligibility after storage I/O. Existing owner-only and MFA ADMIN private photo access remains intact; no evidence-document publication is added. New routes are GET-only; existing role/MFA/CSRF mutation boundaries remain enforced.
+
+Public queries accept make/model substring, exact category, location substring, minimum seats, catalogue/name/full-day-price sort and page/pageSize. Page size defaults to 12, max 24; page max 1000; unknown/duplicate API parameters fail validation. Equal sort values use publicId ties; default order uses createdAt/publicId. Local preview evaluates at most 500 candidate vehicles and 100 enabled policies, then filters/paginates eligible DTOs. Overflow fails closed with 503/safe UI error, never silent truncation/fallback. Existing indexes support candidates and relations; production-scale query plans/load tests remain a gate.
+
+### Configuration, compatibility and rollback
+
+- Default: leave `KILIRIDE_DB_CATALOGUE` unset or set exactly `false` in server environment. No actual `.env` value was changed. OFF preserves `/`, `/services/vehicles`, `/vehicles/vitz-142s`, `/vehicles/note-131c`, known specifications and KES 2500 half-day / 3500 full-day / 500 legacy reservation fee. `CarCard` remains the reusable component. No legacy record is assigned or approved.
+- ON preview: set `KILIRIDE_DB_CATALOGUE=true` only for a development server backed by guarded loopback `55432/kiliride_dev` or `55433/kiliride_test`. NODE_ENV=production rejects ON. The development policy table is empty, so ON there shows an honest empty catalogue; it cannot approve real inventory. The test runner selects test DB/storage, port 3101 and a test-only policy; `node scripts/run.mjs test-catalogue` runs this preview automatically. `npm.cmd run test:integration` runs legacy port 3100 and preview port 3101 sequentially, refusing occupied servers.
+- The shared policy predicate has no authorized real versions. No setting, client parameter or enabled database row alone can bypass this. Formal activation requires actual approved policy/matrix and an explicitly reviewed authorization change. Draft approver/effective date remain unset. Positive fixtures are synthetic test protocol records, never real inspections, owners or legal evidence.
+- Legacy UI says review pending and asks customers to enquire about availability; it no longer asserts Verified/Available Today or a fixed reservation time. Existing `/cars/vitz.jpg` and `/cars/note.jpg` references remain; those files were absent in this checkout, so the UI renders `Photograph unavailable`. No stock/AI imagery was added. Future genuine reviewed vehicles can retain their stable publicId; existing legacy URLs are intentionally unavailable in ON mode until legitimately eligible, rather than bypassing policy.
+- DB inventory has no defined reservation-fee policy: its fee is `null`/to-confirm and estimates clearly show base rental only. Legacy three-day arithmetic remains 3500 × 3 + 500 = KES 11,000; preview fixture arithmetic is separately tested. WhatsApp retains the existing platform contact, uses public vehicle reference instead of private registration, and explicitly says enquiry only/manager confirmation. No quote, reservation, payment or availability record is created.
+- Pages use force-dynamic/revalidate=0; API/images send no-store and CDN no-store; detail links do not prefetch; controlled photos bypass the optimizer and optimizer access to API paths is denied. Tests warm the same URL then suspend/deactivate and observe 404/withdrawal, including conditional-image requests. Already delivered bytes/rendered views cannot be recalled; no push revocation is claimed.
+- Rollback: unset/set flag to `false`, restart the server, verify the two legacy routes/prices and WhatsApp. No database rollback/reset/deletion is needed. Public DB photo endpoints deny access when OFF. Keep all historical evidence intact.
+
+### Database and isolation results
+
+No schema, index, migration, dependency version or package-lock change. Six existing migrations; Prisma 7.10.1 unchanged. Read-only status: development `127.0.0.1:55432/kiliride_dev` and test `127.0.0.1:55433/kiliride_test` both up to date. All automated fixture mutations use the latter plus `.data/vehicle-images/test`; the application development tables remain byte-for-byte equivalent to the stored 2E row fingerprints (all 18 application tables).
+
+The unchanged migrations were deployed/replayed on fresh disposable `kiliride_rehearsal_76a00fbdf08e488389f3f7a9f6e3c0b5` on test port 55433, retained for inspection. Six checksums/history entries, 19 tables, 18 triggers, CUSTOMER assignment and test-policy isolation probes passed; repeat deploy was a no-op. No existing database was reset or migrated. No new migration means no new migration backup was needed; prior ignored 2E backups remain intact.
+
+Final read-only check on both targets: Vitz and Note remain unassigned DRAFT, prices unchanged, no photo/review/decision/approvedReview. No real policy records; development has zero policies. Test-only synthetic policies/fixtures remain isolated for inspection. Final storage check: **299 ACTIVE objects** exactly match photo references, file inventory, byte sizes and SHA-256; no orphans or pending cleanup.
+
+### Executed checks
+
+| Command | Actual final result |
+|---|---|
+| `npm.cmd run test:unit` | PASS 14/14, 2.05s |
+| `node scripts/run.mjs test-fleet` | PASS 29/29, 33.55s |
+| `npm.cmd run test:integration` | PASS: legacy 16/16 in 3.8m; database preview 3/3 in 36.4s |
+| `npm.cmd run typecheck` | PASS, `tsc --noEmit --incremental false` |
+| `npm.cmd run lint -- --max-warnings=0` | PASS, zero warnings |
+| `node node_modules/prisma/build/index.js validate` | PASS |
+| `node scripts/run.mjs status-test`; `node node_modules/prisma/build/index.js migrate status` | PASS, six migrations, both isolated targets up to date |
+| `node scripts/rehearse-migrations.mjs` | PASS, fresh target, repeat no-op/checksums/status/19 tables/18 triggers/isolation probes |
+| `npm.cmd run build`; `node scripts/check-private-traces.mjs` | PASS, 13 static pages; catalogue/detail/API routes dynamic; 40 traces exclude private runtime files |
+| `node backups/phase2e-fingerprints.mjs --verify --dev-only`; `node backups/phase2e-matrix-fingerprints.mjs --verify --dev-only` | PASS, original 16 and 18 development-table baselines unchanged |
+| `node backups/verify-phase2e.mjs`; `node backups/verify-image-consistency.mjs` | PASS, legacy/policy protections on both targets and 299 consistent test objects |
+| Online `npm.cmd audit --omit=dev --json` | PASS, exit 0, zero vulnerabilities |
+| Online `npm.cmd audit --json` | NON-CLEAN, exit 1: 23 findings, 3 high / 19 moderate / 1 low |
+| `git diff --check` | PASS |
+
+New coverage: 1 unit test, 5 database tests, 1 legacy-mode browser test and 3 ON-preview browser/API tests. Test files: `tests/unit/public-catalogue.test.ts`, `tests/database/catalogue.test.ts`, `tests/integration/catalogue-off.spec.ts`, `tests/catalogue/public.spec.ts`, fixture helper `tests/helpers/catalogue-fixtures.ts`. Existing identity/verification/recovery/MFA/recovery-code replay, ADMIN access/audit/races, HOST ownership/validation/lifecycle, uploads/replacement/deletion/consistency, catalogue/prices and WhatsApp all pass. New public security tests cover unpublished statuses, unassigned legacy, internal/unknown IDs, policy inactivity/draft/non-authorized policy, owner verification loss, missing audit, cross-photo access, public field allowlist, forged flags/filters, excessive sizes, optimizer denial, empty/filter/sort/pagination and immediate withdrawal. Responsive checks at 375px/1280px and keyboard label/focus controls passed in Chromium.
+
+Corrected during verification: CJS fixture entry-point top-level-await incompatibility, synthetic registration longer than the existing 40-character limit, a readonly NODE_ENV test cleanup type error, and incorrect exact timestamp equality between transaction inserts. Final assertions were retained; no validation/audit rule was bypassed. Initial service runs had 24/29 then 27/29 passes before correction; final 29/29 passed. Sandbox subprocess EPERM required authorized retries. The sandbox's empty full-audit result was superseded by the online result. Existing color/smooth-scroll warnings appeared without failed browser assertions.
+
+### Files, limitations and manual review
+
+Changed application/config files are listed in the feature table, plus `.env.example`, `next.config.ts`, `package.json`, `scripts/run.mjs`, `src/lib/validation/public-catalogue.ts` and `src/server/fleet/service.ts` (shared policy predicate). New test/config files are listed above. Documentation updated: this report, architecture, data model, decisions, test report, roadmap and release checklist. The user-supplied prompt 003F remains present. No auth implementation, static fleet source, Prisma schema/migrations or dependency lockfile was changed.
+
+Remaining gates: current full audit affects development tooling including ESLint/minimatch chains, shadcn/transitive Zod/brace-expansion, Hono node server and ts-morph chains. Runtime audit is clean; no broad `audit fix --force`, tool downgrade or Prisma upgrade was applied. Review/remediate these findings in a compatible dependency maintenance change before declaring the complete engineering security gate clean. Full local audit JSON is retained under ignored `backups/phase2f-audit-*.json`; the 2E five-finding result is historical, not today's result.
+
+Business/production blockers: formally approved policy and resolved Kenyan regulatory/legal/insurance matrix; actual owners/authorizations, real evidence/photos and reviews; approved rental/fee/publication/privacy/retention terms; hosted storage and coordinated restore/operations; production capacity/query/load/rate-limit review; full physical-device/screen-reader acceptance; explicit staging/cutover authorization. Hosted CI was not run for these uncommitted changes. No production, legal determination, new restore drill or real inventory approval was attempted.
+
+Manual acceptance:
+
+1. Start local dev with flag unset/false. Open `/`, `/services/vehicles` and both legacy detail URLs. Confirm IDs, KES prices, pending-review labels, missing-photo fallback, filters, mobile layout and enquiry-only WhatsApp content; do not send a message to prove the link.
+2. Run `npm.cmd run test:integration` with healthy isolated PostgreSQL/Mailpit. The second suite supplies clearly synthetic approved fixtures only to the test server. Inspect the filter/detail/gallery flows and forbidden nonpublic URLs through that isolated preview; never move fixture policies to development/production.
+3. For an empty real-development preview, set the server flag true with the existing 55432 development DB, run `npm.cmd run dev`, and confirm empty inventory/no legacy fallback. Do not seed or activate a real policy. Restore flag false and restart afterward.
+4. Review warmed-URL withdrawal assertions, public JSON fields, no-store headers and optimizer denial in `tests/catalogue/public.spec.ts`. Existing private HOST/ADMIN permissions must continue to apply independently of public visibility.
+5. Review the current dependency findings and all business/operational gates. Approving this code does not authorize policy activation, production cutover or Phase 2G.
+
+**Stopped after 2F for review. No commit, push, deployment or Phase 2G.**
 
 ## Milestone 2E acceptance (2026-10-30 to 2026-10-31)
 

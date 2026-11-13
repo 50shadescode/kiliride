@@ -5,6 +5,9 @@ const nextConfig: NextConfig = {
   reactCompiler: true,
   agentRules: false,
   logging: { incomingRequests: false },
+  // Controlled photo URLs must never enter the optimizer's persistent cache.
+  // PublicPhoto uses unoptimized delivery; only legacy static paths may optimize.
+  images: { localPatterns: [{ pathname: "/cars/**", search: "" }] },
   outputFileTracingExcludes: {
     "/*": ["./.data/**/*", "./backups/**/*", "./.env", "./.env.*"],
   },
