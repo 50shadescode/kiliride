@@ -1,5 +1,12 @@
 # KiliRide architecture: implemented and target design
 
+## B05 private durable storage foundation (2026-11-13)
+
+Hosted modes now select the private S3 adapter in images/s3.ts through explicit storage configuration; local/test retain guarded filesystem storage. The existing authorization, normalization, verified reads and publication rules remain. SDK-signed conditional PUT and private/versioned bucket checks precede remote operations; no public or signed object URLs are emitted. Remote cleanup retains tombstones for ambiguous late writes and pages the existing journal; no schema migration.
+
+Read-only inventory/manifest validation and operator reconciliation are in scripts/hosted-images.ts. A synthetic coordinated pg_dump/object restore into new destinations passed locally. Actual provider TLS/IAM/durability and independent hosted recovery remain pending. [Release 003 evidence](KILIRIDE_MVP_RELEASE_003_REPORT.md) and [storage/recovery contract](KILIRIDE_PRIVATE_STORAGE_RECOVERY.md) supersede earlier statements that no hosted adapter exists. They do not authorize hosting or publication.
+
+
 ## B03 hosted runtime foundation (2026-11-13)
 
 Explicit hosted modes now support HTTPS authentication, authenticated TLS SMTP and verified-TLS PostgreSQL options with bounded pooling. Local/test isolation and local migration guards remain. Separate operator migration configuration and a read-only role preflight support distinct runtime/migration identities; actual provider grants and connectivity are unverified. Production configuration loads reject invalid production configuration during server initialization, with instrumentation as defense in depth. The build can run without hosted credentials.

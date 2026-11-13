@@ -52,7 +52,11 @@ export function createPhotoService(storage: ImageStorage) {
       // Upload activation holds this same journal lock while writing. Cleanup can
       // never race an active writer or remove an object referenced by a photo.
       await storage.remove(key);
-      await tx.vehicleImageObject.delete({ where: { key } });
+      if (storage.retainCleanupJournal) {
+        // Keep a tombstone: a timed-out remote PUT may finish after DELETE.
+        // Future sweeps repeat DELETE; never reuse keys or purge tombstones here.
+        await tx.vehicleImageObject.update({ where: { key }, data: { state: "DELETE_PENDING" } });
+      } else await tx.vehicleImageObject.delete({ where: { key } });
       return true;
     }, { timeout: 15000 });
   }
@@ -108,7 +112,9 @@ export function createPhotoService(storage: ImageStorage) {
         // A timed-out DB transaction must not clean a file while its write is
         // still completing. The durable journal also survives process crashes.
         await write?.catch(() => {});
-        await bestEffortCleanup(key); throw error;
+        if (!storage.retainCleanupJournal) await bestEffortCleanup(key);
+        // Remote failures stay PENDING for the reconciler's one-hour grace.
+        throw error;
       }
     },
     async arrange(headers: Headers, vehicleId: string, input: unknown) {
@@ -145,12 +151,12 @@ export function createPhotoService(storage: ImageStorage) {
       if (!photo?.object) throw new AccessError(404);
       return readVerifiedImage(storage, photo.object);
     },
-    async reconcile() {
+    async reconcile(afterKey?: string) {
       const cutoff = new Date(Date.now() - 3600_000);
-      const objects = await db.vehicleImageObject.findMany({ where: { OR: [{ state: "DELETE_PENDING" }, { state: "PENDING", createdAt: { lt: cutoff } }] }, select: { key: true }, take: 100, orderBy: { createdAt: "asc" } });
+      const objects = await db.vehicleImageObject.findMany({ where: { ...(afterKey ? { key: { gt: afterKey } } : {}), OR: [{ state: "DELETE_PENDING" }, { state: "PENDING", createdAt: { lt: cutoff } }] }, select: { key: true }, take: 100, orderBy: { key: "asc" } });
       let removed = 0, failed = 0;
       for (const object of objects) { try { if (await cleanup(object.key, cutoff)) removed++; } catch { failed++; } }
-      return { examined: objects.length, removed, failed };
+      return { examined: objects.length, removed, failed, nextCursor: objects.length === 100 ? objects.at(-1)!.key : null };
     },
   };
 }

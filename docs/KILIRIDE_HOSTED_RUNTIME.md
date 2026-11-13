@@ -1,6 +1,6 @@
 # Hosted runtime contract (B03)
 
-Configuration support only; no provider provisioned, credentials supplied, hosted connection/delivery verified, or deployment authorized. Keep B05/B06/B07 blocked. Existing local image adapter rejects remote DB targets; hosted photo operations are unavailable until B05. Real policies remain unauthorized and catalogue flag must be `false` in hosted modes.
+Configuration support only; no provider provisioned, credentials supplied, hosted connection/delivery verified, or deployment authorized. B05 now supplies a private S3 adapter with required explicit storage settings; its real provider/recovery acceptance remains pending. B06/B07 remain blocked. See [private storage and recovery contract](KILIRIDE_PRIVATE_STORAGE_RECOVERY.md) and [release 003 evidence](KILIRIDE_MVP_RELEASE_003_REPORT.md). Real policies remain unauthorized and catalogue flag must be `false` in hosted modes.
 
 ## Separate environment manifests
 
@@ -30,6 +30,7 @@ SMTP_DELIVERY_ENABLED=false
 # Required allowlist when enabling staging delivery; only explicitly authorized testers.
 # SMTP_ALLOWED_RECIPIENTS=tester@approved.example
 KILIRIDE_DB_CATALOGUE=false
+# Also supply all mandatory STORAGE_* settings from the B05 contract.
 ```
 
 Production uses `KILIRIDE_ENV=production`, `DB_ENVIRONMENT=production`, and its own approved origin/DB identity/credentials. Explicit host/name/user expectations detect swapped connection strings; they are not proof of provider ownership or isolation. Operator-reviewed manifests, separate databases/accounts and access controls remain required. Provider-independent DNS endpoints are accepted; IP/loopback/local/test endpoints, URL query overrides and default privileged usernames are rejected. DNS resolution/private-network isolation must be reviewed with the provider; configuration validation does not establish network reachability or ACLs.
@@ -60,6 +61,6 @@ Uses existing Nodemailer, no new dependency/provider. Hosted SMTP requires crede
 - Separate DB identities/roles and TLS trust, migrations/status/restore safety and pool capacity.
 - Authorized SMTP account/sender, recipient allowlist and real verification/reset delivery.
 - Actual secure-cookie/Origin/MFA tests through the host, client bundle/log secret scan, rate-limit review.
-- Keep catalogue false, policy register empty and B05 storage unimplemented. No real inventory/evidence onboarding under this configuration task.
+- Keep catalogue false and policy register empty; verify B05 hosted storage and independent recovery before launch. No real inventory/evidence onboarding under this configuration task.
 
 References used: [pg TLS configuration](https://node-postgres.com/features/ssl), [Nodemailer SMTP](https://nodemailer.com/smtp), [Next instrumentation startup hook](https://nextjs.org/docs/app/api-reference/file-conventions/instrumentation). Better Auth options/cookie behavior were checked against installed 1.7.14 source/types.

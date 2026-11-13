@@ -1,5 +1,12 @@
 # KiliRide domain model and invariants
 
+## B05 journal semantics (2026-11-13)
+
+No Prisma/schema/migration change. VehicleImageObject and VehiclePhoto metadata remain the sole journal/reference model. In hosted storage, failed/ambiguous uploads retain PENDING for a one-hour grace. Cleanup locks/rechecks state and references, deletes only known unreferenced keys and retains DELETE_PENDING tombstones for repeated deletion of possible late provider writes. Keys are never reused; tombstones cannot activate. Local filesystem cleanup still retires known cleaned rows. Cursor pagination prevents retained tombstones starving later cleanup.
+
+Storage prefix/environment belongs to the explicit operator manifest; existing DB UUID keys are unchanged and never exposed as storage capabilities. Recovery couples the DB checkpoint with private object copies and SHA-256/size/reference manifests; missing/corrupt/unknown objects are report-only. [B05 recovery contract](KILIRIDE_PRIVATE_STORAGE_RECOVERY.md) describes version retention and independent-destination acceptance, still pending externally.
+
+
 ## Phase 2F public read model (2026-10-31)
 
 No Prisma/schema/migration change. Six existing migrations retain 19 public tables including migration history and 18 application triggers. Public reads use the existing Vehicle, ownership, approval review, decision, policy/compliance snapshot, listing event, audit and photograph journal. Current approval revision must equal reviewed revision + 1; a matching post-decision event/audit is mandatory. Approval status alone cannot publish. Suspension, disabled policy, lost verified HOST association, missing approval evidence or non-ACTIVE photographs exclude the record. Unassigned legacy DRAFTs are never database inventory.

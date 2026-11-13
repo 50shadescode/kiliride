@@ -17,7 +17,7 @@ if (['test-catalogue','serve-catalogue-test'].includes(task)) {
 }
 const commands = {
   // Files share retained test records; serialize suites, not explicit race tests.
-  'test-fleet': ['--conditions=react-server', '--import', 'tsx', '--test', '--test-concurrency=1', 'tests/database/fleet.test.ts', 'tests/database/images.test.ts', 'tests/database/admin.test.ts', 'tests/database/catalogue.test.ts', 'tests/database/runtime.test.ts'],
+  'test-fleet': ['--conditions=react-server', '--import', 'tsx', '--test', '--test-concurrency=1', 'tests/database/fleet.test.ts', 'tests/database/images.test.ts', 'tests/database/s3.test.ts', 'tests/database/admin.test.ts', 'tests/database/catalogue.test.ts', 'tests/database/runtime.test.ts'],
   migrate: ['node_modules/prisma/build/index.js', 'migrate', 'deploy'],
   'migrate-test': ['node_modules/prisma/build/index.js', 'migrate', 'deploy'],
   'status-test': ['node_modules/prisma/build/index.js', 'migrate', 'status'],

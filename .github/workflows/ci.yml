@@ -30,6 +30,8 @@ jobs:
       - run: npm run typecheck
       - run: npm run test:unit
       - run: npm run test:fleet
+      - name: Rehearse synthetic database and private image recovery
+        run: node --conditions=react-server --import tsx scripts/rehearse-image-recovery.ts
       - run: npx --no-install playwright install --with-deps chromium
       - run: npm run test:integration
       - run: npm run build

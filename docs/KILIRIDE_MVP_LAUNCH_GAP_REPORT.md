@@ -1,5 +1,8 @@
 # KiliRide MVP pilot launch gap report
 
+> **2026-11-13 release 003 update:** B05 is **PARTIAL / LAUNCH BLOCKER**. Private S3 adapter, failure reconciliation and synthetic coordinated recovery are implemented and pass local gates. Actual provider configuration/privacy/TLS/durability, reconciliation scheduling and independent hosted recovery remain PENDING. See [B05 report and precise remaining acceptance](KILIRIDE_MVP_RELEASE_003_REPORT.md) and [storage/recovery runbook](KILIRIDE_PRIVATE_STORAGE_RECOVERY.md). Current committed checkpoint is cd10bcf73007bc12803862f93bd8b20be008f144 on feature/phase2-fleet-management; B05 changes are uncommitted. Prior entries below are dated history. B03 external acceptance and other pilot gates remain open; no deployment or publication occurred.
+
+
 > **2026-11-13 release 002 update:** B03 is **PARTIAL**: provider-independent secure hosted runtime foundation and local gates pass. Actual hosted PostgreSQL roles/TLS, HTTPS proxy/auth behavior, SMTP delivery and secret operations remain unverified; B03 stays a LAUNCH BLOCKER. [Release 002 report](KILIRIDE_MVP_RELEASE_002_REPORT.md) gives prioritized remaining acceptance and [runtime contract](KILIRIDE_HOSTED_RUNTIME.md) gives configuration. Phase 2F is now committed at 00bcd074119d1bd9fe550244ceef2404082bcffa; prior uncommitted/B01 statements below are historical. The supplied task reports prior CI passed, not independently queried here. New B03 changes are uncommitted and have no hosted CI result. No deployment/publication; overall pilot NO-GO and B05+ scope remain unchanged.
 
 

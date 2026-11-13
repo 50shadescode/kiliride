@@ -6,6 +6,7 @@ async function main() {
   const target = process.argv[2];
   if (target !== "dev" && target !== "test") throw new Error("Specify dev or test.");
   process.env.DATABASE_URL = assertLocalDatabase(target === "test" ? process.env.TEST_DATABASE_URL : process.env.DATABASE_URL, target === "test");
+  process.env.KILIRIDE_ENV = target === "test" ? "test" : "development";
   if (target === "dev" && new URL(process.env.DATABASE_URL!).pathname !== "/kiliride_dev") throw new Error("Development target mismatch");
   try {
     const result = await photos().reconcile();

@@ -1,5 +1,18 @@
 # Commercial release gates
 
+## B05 storage review gate (2026-11-13)
+
+**B05 PARTIAL; real-user launch remains NO-GO.** [Release 003](KILIRIDE_MVP_RELEASE_003_REPORT.md), [private storage/recovery runbook](KILIRIDE_PRIVATE_STORAGE_RECOVERY.md).
+
+- [x] Explicit fail-closed hosted adapter; local/test filesystem preserved; private/versioned bucket checks, immutable signed uploads, bounded verified reads.
+- [x] Remote ambiguity/tombstone reconciliation and read-only inventory; unknown objects never automatically deleted.
+- [x] Required local security/regression/build/migration/audit gates; isolated new-destination DB/image recovery drill.
+- [ ] Authorized provider configuration and actual private ACL/policy/version/TLS/encryption/conditional-write acceptance.
+- [ ] Scoped credentials, reconciliation schedule/alerts, marker/tombstone retention and capacity approval.
+- [ ] Named recovery owners, approved RPO/RTO/retention, independent backup destination and hosted recovery with source unavailable.
+- [ ] Review and separately authorized checkpoint/CI. Keep B03 external acceptance, B06 policy and B07 publication gates closed.
+
+
 ## B03 runtime review gate (2026-11-13)
 
 **NO-GO for staging deployment and real-user launch pending external verification.** [Release 002 evidence](KILIRIDE_MVP_RELEASE_002_REPORT.md), [operator configuration contract](KILIRIDE_HOSTED_RUNTIME.md).

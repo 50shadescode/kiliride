@@ -4,6 +4,7 @@ import { isIP } from "node:net";
 import type { PoolConfig } from "pg";
 import type SMTPTransport from "nodemailer/lib/smtp-transport";
 import { assertLocalDatabase, assertLocalHttp } from "../../scripts/local-safety.mjs";
+import { storageConfig } from "./images/config";
 type Environment = Record<string, string | undefined>;
 const error = () => new Error("Invalid KiliRide runtime configuration. Check the server environment contract.");
 const required = z.string().trim().min(1);
@@ -67,7 +68,7 @@ export function parseRuntimeEnv(source: Environment) {
       recipients = source.SMTP_ALLOWED_RECIPIENTS?.split(",").map(v => z.email().parse(v.trim()).toLowerCase()) ?? [];
       if (mode === "staging" && deliveryEnabled && !recipients.length) throw error();
     }
-    return { ...base, BETTER_AUTH_URL: origin.origin, mode, hosted, database,
+    return { ...base, BETTER_AUTH_URL: origin.origin, mode, hosted, database, storage: storageConfig(source, mode),
       smtp: { ...smtp, connectionTimeout: 5000, greetingTimeout: 5000, socketTimeout: 10000, logger: false, debug: false, disableFileAccess: true, disableUrlAccess: true } satisfies SMTPTransport.Options,
       deliveryEnabled, recipients };
   } catch { throw error(); }

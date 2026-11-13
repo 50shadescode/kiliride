@@ -1,5 +1,14 @@
 # KiliRide test report
 
+## MVP release 003: B05 storage (2026-11-13)
+
+Local engineering PASS: 23/23 unit, 32/32 database/service (58.514s), OFF browser/API 16/16, ON 3/3 (39.2s), TypeScript, zero-warning lint, Prisma validate/status/rehearsal, production build, 41 private traces, 25 client artifact scans and zero-finding online full/runtime audits. CI YAML validated; new synthetic recovery gate added, not executed on hosted CI for this candidate.
+
+Signed SDK protocol tests use isolated synthetic storage, not an external S3 service. They cover bucket/config denial, immutable PUT, bounded stream/timeout, DB timeout after PUT, lost response, failed delete, duplicate revisions, late writes/tombstones and unknown-object preservation. Existing authorization/normalization/review/catalogue tests remain intact. Synthetic pg_dump/restore into new databases and separate image directories matched 19 tables/18 triggers and two image hashes/covers/order in 5,226ms. Hosted storage and independent disaster recovery remain PENDING.
+
+All 419 pre-existing image hashes and development tables preserved; final 494 ACTIVE objects consistent, no orphans/pending cleanup. Test-only legacy replay revisions and 11 ephemeral RateLimit changes are documented in the [complete release report](KILIRIDE_MVP_RELEASE_003_REPORT.md), with commands, limitations and the initial corrected type annotation. No real policy/publication or deployment.
+
+
 ## MVP release task 002: B03 runtime (2026-11-13)
 
 Local gates PASS: TypeScript, strict ESLint, 22 unit tests, 30 database/service tests, OFF browser/API 16/16 (2.7m), ON catalogue 3/3 (25.5s), Prisma local/synthetic hosted validation, six-migration status/rehearsal/repeat-no-op, production build, 41 private-file traces and 25 client artifact secret scans. Online full/runtime audits both zero. Node v24.14.1/npm 11.11.0. See [complete commands, failures, preservation exceptions and remaining external checks](KILIRIDE_MVP_RELEASE_002_REPORT.md).

@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { getCookies } from "better-auth/cookies";
 import { assertRuntimeDatabaseIdentity } from "../../src/server/database-role";
+import { syntheticStorageEnv } from "../helpers/s3";
 import { parseRuntimeEnv, authSecurityOptions, authRequestAllowed, hostedMigrationUrl, identityDeliveryAllowed } from "../../src/server/runtime-config";
 
 const local = {
@@ -11,6 +12,7 @@ const local = {
   SMTP_HOST: "127.0.0.1", SMTP_PORT: "11025", MAIL_FROM: "KiliRide <noreply@kiliride.test>",
 };
 const hosted = {
+  ...syntheticStorageEnv,
   ...local, NODE_ENV: "production" as const, KILIRIDE_ENV: "staging", DB_ENVIRONMENT: "staging",
   DATABASE_URL: "postgresql://app_runtime:synthetic-db-password@db.provider.example:5432/pilot_staging",
   DB_EXPECTED_HOST: "db.provider.example", DB_EXPECTED_NAME: "pilot_staging", DB_EXPECTED_USER: "app_runtime",
@@ -28,7 +30,7 @@ test("runtime modes keep local/test database isolation and forbid implicit produ
 });
 test("hosted configuration rejects missing secrets, unsafe origins, environment swaps and overrides without leaking values", () => {
   assert.equal(parseRuntimeEnv(hosted).mode, "staging");
-  assert.equal(parseRuntimeEnv({ ...hosted, KILIRIDE_ENV: "production", DB_ENVIRONMENT: "production" }).mode, "production");
+  assert.equal(parseRuntimeEnv({ ...hosted, KILIRIDE_ENV: "production", DB_ENVIRONMENT: "production", STORAGE_ENVIRONMENT: "production", STORAGE_BUCKET: "synthetic-kiliride-production", STORAGE_EXPECTED_BUCKET: "synthetic-kiliride-production", STORAGE_PREFIX: "production/vehicle-images/" }).mode, "production");
   for (const key of ["BETTER_AUTH_SECRET", "DATABASE_URL", "DB_EXPECTED_HOST", "DB_EXPECTED_NAME", "DB_EXPECTED_USER", "DB_ENVIRONMENT", "SMTP_PASSWORD", "SMTP_TLS", "SMTP_DELIVERY_ENABLED", "KILIRIDE_DB_CATALOGUE"]) {
     assert.throws(() => parseRuntimeEnv({ ...hosted, [key]: undefined }), /^Error: Invalid KiliRide runtime configuration/);
   }

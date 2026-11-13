@@ -2,10 +2,13 @@ import "server-only";
 import { mkdir, lstat, open, unlink, realpath } from "node:fs/promises";
 import path from "node:path";
 import { assertLocalDatabase } from "../../../scripts/local-safety.mjs";
+import { getEnv } from "../env";
+import { createS3Storage } from "./s3";
 
 // A production adapter must provide private, durable, immutable put/get and
 // idempotent remove. No public URL or arbitrary path is accepted by this API.
 export interface ImageStorage {
+  readonly retainCleanupJournal?: boolean;
   put(key: string, bytes: Buffer): Promise<void>;
   get(key: string): Promise<Buffer>;
   remove(key: string): Promise<void>;
@@ -16,7 +19,13 @@ export function imageStorageNamespace(databaseUrl: string | undefined) {
   if (url.port !== "55432") throw new Error("Development image storage requires isolated development port 55432.");
   return "development";
 }
+let hostedStore: ImageStorage | undefined;
 export function imageStorage(): ImageStorage {
+  const env = getEnv();
+  if (env.hosted) {
+    if (!env.storage) throw new Error("Private storage configuration required.");
+    return hostedStore ??= createS3Storage(env.storage);
+  }
   const namespace = imageStorageNamespace(process.env.DATABASE_URL);
   const parent = path.resolve(process.cwd(), ".data");
   const root = path.join(parent, "vehicle-images", namespace);
